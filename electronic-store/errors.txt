@@ -1,0 +1,8 @@
+src/App.tsx(1,8): error TS6133: 'React' is declared but its value is never read.
+src/components/HeroSection.tsx(1,1): error TS6133: 'React' is declared but its value is never read.
+src/components/IntroSequence.tsx(1,8): error TS6133: 'React' is declared but its value is never read.
+src/components/IntroSequence.tsx(3,23): error TS2305: Module '"@react-three/drei"' has no exported member 'EffectComposer'.
+src/components/IntroSequence.tsx(3,39): error TS2305: Module '"@react-three/drei"' has no exported member 'Bloom'.
+src/components/IntroSequence.tsx(3,46): error TS2305: Module '"@react-three/drei"' has no exported member 'DepthOfField'.
+src/components/ProductGrid.tsx(1,8): error TS6133: 'React' is declared but its value is never read.
+src/components/ProductGrid.tsx(1,47): error TS6133: 'useEffect' is declared but its value is never read.
