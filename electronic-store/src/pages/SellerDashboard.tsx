@@ -8,15 +8,18 @@ const glass = { background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(25
 
 export function SellerDashboard() {
   const { products } = useProducts();
-  const { orders } = useOrders();
+  const { orders, allOrders } = useOrders();
+  
+  // Use allOrders for dashboard stats (all orders in system), fallback to user orders
+  const dashboardOrders = allOrders.length > 0 ? allOrders : orders;
   
   // Calculate dynamic stats
-  const totalSales = orders.reduce((sum: number, o: any) => sum + (o.totalPrice || 0), 0) || SELLER_STATS.totalSales;
-  const totalOrders = orders.length || SELLER_STATS.totalOrders;
+  const totalSales = dashboardOrders.reduce((sum: number, o: any) => sum + (o.totalAmount || o.totalPrice || 0), 0) || SELLER_STATS.totalSales;
+  const totalOrders = dashboardOrders.length || SELLER_STATS.totalOrders;
   const totalProducts = products.length || SELLER_STATS.totalProducts;
   
   const myProducts = products.slice(0, 4);
-  const recentOrders = orders.length > 0 ? orders.slice(0, 5) : SELLER_STATS.recentOrders;
+  const recentOrders = dashboardOrders.length > 0 ? dashboardOrders.slice(0, 5) : SELLER_STATS.recentOrders;
   const stats = SELLER_STATS; // For monthly sales graph and avg rating
 
   return (
@@ -69,7 +72,7 @@ export function SellerDashboard() {
                 <p style={{ fontWeight: 600, margin: 0 }}>{o.product || (o.orderItems?.[0]?.name) || 'Order'}</p>
                 <p style={{ color: '#6b7280', fontSize: '0.8rem', margin: '0.15rem 0 0' }}>by {o.customer || o.shippingAddress?.name || 'Customer'} · {o.date || new Date(o.createdAt).toLocaleDateString()}</p>
               </div>
-              <span style={{ fontWeight: 700 }}>${o.amount || o.totalPrice?.toFixed(2)}</span>
+              <span style={{ fontWeight: 700 }}>${o.amount || o.totalAmount?.toFixed(2) || o.totalPrice?.toFixed(2)}</span>
               <span style={{ padding: '0.3rem 0.75rem', borderRadius: '9999px', fontSize: '0.7rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em',
                 background: (o.status || 'processing') === 'delivered' ? 'rgba(34,197,94,0.15)' : (o.status || 'processing') === 'shipped' ? 'rgba(96,165,250,0.15)' : 'rgba(245,158,11,0.15)',
                 color: (o.status || 'processing') === 'delivered' ? '#22c55e' : (o.status || 'processing') === 'shipped' ? '#60a5fa' : '#f59e0b'

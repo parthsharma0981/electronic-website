@@ -1,49 +1,59 @@
 import { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { useAuth } from './AuthContext';
 import toast from 'react-hot-toast';
+import { authService } from '../services/authService.js';
 
 const WishlistContext = createContext<any>(null);
-
-const wishlistKey = (userId: string) => userId ? `miskara_wishlist_${userId}` : null;
-
-const loadWishlist = (userId: string): any[] => {
-  const key = wishlistKey(userId);
-  if (!key) return [];
-  try { return JSON.parse(localStorage.getItem(key) || '[]') || []; }
-  catch { return []; }
-};
-
-const saveWishlist = (userId: string, items: any[]) => {
-  const key = wishlistKey(userId);
-  if (!key) return;
-  localStorage.setItem(key, JSON.stringify(items));
-};
 
 export const WishlistProvider = ({ children }: { children: React.ReactNode }) => {
   const { user } = useAuth();
   const [wishlist, setWishlist] = useState<any[]>([]);
 
+  // Since AuthContext now fetches the full profile from the backend on load,
+  // we can reliably use `user.wishlist` as the source of truth for initialization.
   useEffect(() => {
-    setWishlist(loadWishlist(user?._id));
-  }, [user?._id]);
+    if (user?.wishlist && Array.isArray(user.wishlist)) {
+      // Filter out non-populated ObjectIds (just in case)
+      const populated = user.wishlist.filter(
+        (p: any) => p && typeof p === 'object' && p._id
+      );
+      setWishlist(populated);
+    } else {
+      setWishlist([]);
+    }
+  }, [user]);
+
+  const syncWishlist = async (items: any[]) => {
+    if (!user) return;
+    try {
+      const ids = items.map(p => p._id);
+      const { data } = await authService.updateWishlist(ids);
+      // Backend returns populated wishlist, use it
+      if (Array.isArray(data) && data.length > 0 && data[0]._id) {
+        setWishlist(data);
+      }
+    } catch (err) {
+      console.error('Failed to sync wishlist to backend:', err);
+    }
+  };
 
   const toggleWishlist = useCallback((product: any) => {
     if (!user) {
       toast.error('Please sign in to save favourites');
       return;
     }
-    setWishlist((prev: any[]) => {
-      const exists = prev.find((p: any) => p._id === product._id);
-      const updated = exists
-        ? prev.filter((p: any) => p._id !== product._id)
-        : [...prev, product];
-      saveWishlist(user._id, updated);
-      toast(exists ? 'Removed from Favourites' : 'Added to Favourites ♥', {
-        icon: exists ? '🤍' : '❤️',
-      });
-      return updated;
+    const exists = wishlist.find((p: any) => p._id === product._id);
+    const updated = exists
+      ? wishlist.filter((p: any) => p._id !== product._id)
+      : [...wishlist, product];
+    
+    setWishlist(updated);
+    syncWishlist(updated);
+    
+    toast(exists ? 'Removed from Favourites' : 'Added to Favourites ♥', {
+      icon: exists ? '🤍' : '❤️',
     });
-  }, [user]);
+  }, [user, wishlist]);
 
   const isWishlisted = useCallback((id: string) => {
     return wishlist.some((p: any) => p._id === id);

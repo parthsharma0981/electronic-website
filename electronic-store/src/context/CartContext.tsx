@@ -1,31 +1,40 @@
 import { createContext, useContext, useState, useCallback, useEffect } from 'react';
 import { useAuth } from './AuthContext';
 import toast from 'react-hot-toast';
+import { authService } from '../services/authService.js';
 
 const CartContext = createContext<any>(null);
-
-const cartKey = (userId: string) => userId ? `ecore_cart_${userId}` : null;
-
-const loadCart = (userId: string) => {
-  const key = cartKey(userId);
-  if (!key) return [];
-  try { return JSON.parse(localStorage.getItem(key) || '[]') || []; }
-  catch { return []; }
-};
-
-const saveCartToStorage = (userId: string, items: any[]) => {
-  const key = cartKey(userId);
-  if (!key) return;
-  localStorage.setItem(key, JSON.stringify(items));
-};
 
 export const CartProvider = ({ children }: { children: React.ReactNode }) => {
   const { user } = useAuth();
   const [cartItems, setCartItems] = useState<any[]>([]);
 
+  // Load cart from user profile on mount/login
   useEffect(() => {
-    setCartItems(loadCart(user?._id));
-  }, [user?._id]);
+    if (user && user.cart) {
+      const items = user.cart
+        .filter((item: any) => item.product) // Safely ignore gracefully deleted products
+        .map((item: any) => ({
+          ...item.product,
+          quantity: item.quantity
+        }));
+      setCartItems(items);
+    } else {
+      setCartItems([]);
+    }
+  }, [user]);
+
+  // Sync cart to backend on change (debounced or on every change)
+  // For simplicity here, we'll call it in each action
+  const syncCart = async (items: any[]) => {
+    if (!user) return;
+    try {
+      const backendCart = items.map(i => ({ product: i._id, quantity: i.quantity }));
+      await authService.updateCart(backendCart);
+    } catch (err) {
+      console.error('Failed to sync cart:', err);
+    }
+  };
 
   const addToCart = useCallback((product: any, quantity = 1) => {
     if (!user) {
@@ -40,25 +49,21 @@ export const CartProvider = ({ children }: { children: React.ReactNode }) => {
       return false;
     }
 
-    setCartItems((prev) => {
-      const existingItem = prev.find((i) => i._id === product._id);
-      const updated = existingItem
-        ? prev.map((i) => i._id === product._id ? { ...i, quantity: i.quantity + quantity } : i)
-        : [...prev, { ...product, quantity }];
-      saveCartToStorage(user._id, updated);
-      return updated;
-    });
+    const updated = existing
+      ? cartItems.map((i) => i._id === product._id ? { ...i, quantity: i.quantity + quantity } : i)
+      : [...cartItems, { ...product, quantity }];
+    
+    setCartItems(updated);
+    syncCart(updated);
     toast.success(`${product.name} added to cart`);
     return true;
   }, [user, cartItems]);
 
   const removeFromCart = useCallback((id: string) => {
-    setCartItems((prev) => {
-      const updated = prev.filter((i) => i._id !== id);
-      saveCartToStorage(user?._id, updated);
-      return updated;
-    });
-  }, [user]);
+    const updated = cartItems.filter((i) => i._id !== id);
+    setCartItems(updated);
+    syncCart(updated);
+  }, [user, cartItems]);
 
   const updateQuantity = useCallback((id: string, quantity: number) => {
     if (quantity < 1) return removeFromCart(id);
@@ -71,16 +76,14 @@ export const CartProvider = ({ children }: { children: React.ReactNode }) => {
       return;
     }
 
-    setCartItems((prev) => {
-      const updated = prev.map((i) => i._id === id ? { ...i, quantity } : i);
-      saveCartToStorage(user?._id, updated);
-      return updated;
-    });
+    const updated = cartItems.map((i) => i._id === id ? { ...i, quantity } : i);
+    setCartItems(updated);
+    syncCart(updated);
   }, [user, removeFromCart, cartItems]);
 
   const clearCart = useCallback(() => {
     setCartItems([]);
-    saveCartToStorage(user?._id, []);
+    syncCart([]);
   }, [user]);
 
   const totalPrice = cartItems.reduce((sum: number, i: any) => sum + i.price * i.quantity, 0);

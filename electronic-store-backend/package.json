@@ -1,7 +1,7 @@
 {
-  "name": "miskara-backend",
+  "name": "electronic-store-backend",
   "version": "1.0.0",
-  "description": "Miskara Jewellery Backend API",
+  "description": "Electronic Store Backend API",
   "main": "server.js",
   "type": "module",
   "engines": {

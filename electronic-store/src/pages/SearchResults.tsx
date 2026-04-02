@@ -2,7 +2,8 @@ import { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useSearchParams, Link } from 'react-router-dom';
 import { useProducts } from '../context/ProductContext';
-import { Search, ArrowRight, Star } from 'lucide-react';
+import { useWishlist } from '../context/WishlistContext';
+import { Search, ArrowRight, Star, Heart } from 'lucide-react';
 import { Product } from '../types';
 
 export function SearchResults() {
@@ -10,6 +11,7 @@ export function SearchResults() {
   const initialQuery = searchParams.get('q') || '';
   const [query, setQuery] = useState(initialQuery);
   const { products } = useProducts();
+  const { isWishlisted, toggleWishlist } = useWishlist();
 
   const results = useMemo(() => {
     if (!query.trim()) return products;
@@ -39,7 +41,7 @@ export function SearchResults() {
               value={query} 
               onChange={e => setQuery(e.target.value)} 
               autoFocus
-              className="w-full pl-14 pr-6 py-5 rounded-2xl bg-white/5 border border-white/10 focus:border-primary/50 focus:bg-white/10 outline-none transition-all text-lg font-medium"
+              className="w-full pl-14 pr-6 py-5 rounded-2xl bg-white/5 border border-white/10 focus:border-primary/50 focus:bg-white/10 outline-none transition-all text-lg font-medium text-white"
               placeholder="What are you looking for?" 
             />
           </div>
@@ -76,9 +78,37 @@ export function SearchResults() {
                       />
                       <div className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-bg-deep to-transparent opacity-60" />
                       
-                      <div className="absolute top-4 right-4 flex items-center gap-1 bg-black/60 backdrop-blur-md px-2 py-1 rounded-lg border border-white/10">
-                        <Star size={12} className="text-amber-400 fill-amber-400" />
-                        <span className="text-[10px] font-bold text-white">{p.rating}</span>
+                      <div className="absolute top-4 right-4 flex items-center gap-2">
+                        <motion.button
+                          whileHover={{ scale: 1.15 }}
+                          whileTap={{ scale: 0.9 }}
+                          onClick={(e) => { e.preventDefault(); e.stopPropagation(); toggleWishlist(p); }}
+                          style={{
+                            width: 34,
+                            height: 34,
+                            borderRadius: '50%',
+                            background: isWishlisted(p._id) ? 'rgba(239, 68, 68, 0.2)' : 'rgba(0,0,0,0.4)',
+                            backdropFilter: 'blur(12px)',
+                            border: isWishlisted(p._id) ? '1px solid rgba(239, 68, 68, 0.4)' : '1px solid rgba(255,255,255,0.15)',
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            transition: 'all 0.3s ease',
+                            zIndex: 10,
+                          }}
+                          aria-label={isWishlisted(p._id) ? 'Remove from saved' : 'Save product'}
+                        >
+                          <Heart
+                            size={14}
+                            fill={isWishlisted(p._id) ? '#ef4444' : 'none'}
+                            color={isWishlisted(p._id) ? '#ef4444' : '#fff'}
+                          />
+                        </motion.button>
+                        <div className="flex items-center gap-1 bg-glass-bg backdrop-blur-md px-2 py-1 rounded-lg border border-glass-border">
+                          <Star size={12} className="text-amber-400 fill-amber-400" />
+                          <span className="text-[10px] font-bold text-white">{p.rating}</span>
+                        </div>
                       </div>
                     </div>
 
@@ -96,7 +126,7 @@ export function SearchResults() {
                           )}
                         </div>
                         <div className="w-10 h-10 rounded-full border border-white/10 flex items-center justify-center group-hover:bg-white group-hover:text-black transition-all">
-                          <ArrowRight size={18} />
+                          <ArrowRight size={18} className="text-white group-hover:text-black" />
                         </div>
                       </div>
                     </div>

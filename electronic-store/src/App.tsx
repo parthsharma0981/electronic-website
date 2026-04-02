@@ -18,14 +18,16 @@ import { SellerDashboard } from './pages/SellerDashboard';
 import { AdminDashboard } from './pages/AdminDashboard';
 import { Support } from './pages/Support';
 import { SearchResults } from './pages/SearchResults';
-import { ShoppingBag, Search, User, Store } from 'lucide-react';
+import { ShoppingBag, Search, User, Store, Sun, Moon } from 'lucide-react';
 import { useAuth } from './context/AuthContext';
 import { useCart } from './context/CartContext';
+import { useTheme } from './context/ThemeContext';
 import './index.css';
 
 export function Navbar() {
   const { user, logout, isAdmin } = useAuth();
   const { cart } = useCart();
+  const { theme, toggleTheme } = useTheme();
   const navigate = useNavigate();
   const cartItemsCount = cart?.totalItems || 0;
 
@@ -38,7 +40,7 @@ export function Navbar() {
       style={{ bottom: 'auto' }}
     >
       <Link to={isAdmin ? "/admin" : "/"} className="flex items-center no-underline" style={{ gap: '0.75rem' }}>
-        <div className="nav-logo-box">
+        <div style={{ width: '2rem', height: '2rem', borderRadius: '0.5rem', background: 'var(--gradient-primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 0 20px rgba(var(--primary-rgb), 0.3)' }}>
           <div className="nav-logo-dot" />
         </div>
         <span className="nav-title text-white">E-Core</span>
@@ -58,6 +60,13 @@ export function Navbar() {
       </div>
 
       <div className="nav-icons text-white flex items-center gap-6">
+        <button 
+          onClick={toggleTheme} 
+          className="nav-icon flex items-center justify-center pointer cursor-pointer bg-transparent border-none outline-none text-inherit hover:scale-110 active:scale-95 transition-all w-8 h-8 rounded-full"
+          aria-label="Toggle theme"
+        >
+          {theme === 'light' ? <Moon size={18} /> : <Sun size={18} />}
+        </button>
         {!isAdmin && <Search size={20} className="nav-icon" onClick={() => navigate('/search')} />}
         {user ? (
           <div className="flex items-center gap-6">
@@ -157,7 +166,7 @@ function App() {
             </AnimatePresence>
           </main>
 
-          <footer className="bg-bg-surface border-t border-white/5 py-24">
+          <footer style={{ background: 'var(--bg-surface)', borderTop: '1px solid rgba(var(--primary-rgb), 0.06)', padding: '6rem 0' }}>
             <div className="container grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-16 text-left w-full mb-16">
               <div>
                 <h4 className="text-[10px] font-black uppercase tracking-[0.3em] mb-8 text-white">Collections</h4>
@@ -195,7 +204,7 @@ function App() {
               </div>
             </div>
             
-            <div className="container flex flex-col md:flex-row justify-between items-center gap-8 pt-12 border-t border-white/5 text-[9px] font-bold tracking-[0.3em] uppercase text-text-muted">
+            <div className="container flex flex-col md:flex-row justify-between items-center gap-8 pt-12 text-[9px] font-bold tracking-[0.3em] uppercase text-text-muted" style={{ borderTop: '1px solid rgba(var(--primary-rgb), 0.06)' }}>
               <p>© {new Date().getFullYear()} E-Core Global. Beyond Standards.</p>
               <div className="flex gap-8">
                 <span className="hover:text-white cursor-pointer transition-colors">Digital Privacy</span>

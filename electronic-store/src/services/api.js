@@ -6,22 +6,18 @@ const BASE_URL = import.meta.env.VITE_API_URL || '/api';
 
 const api = axios.create({
   baseURL: BASE_URL,
-  timeout: 30000, // 30 second timeout for slow connections
+  timeout: 30000,
   headers: {
     'Content-Type': 'application/json',
   },
 });
 
-// Attach JWT token to every request
+// Attach JWT token to every request — token is the ONLY thing in localStorage
 api.interceptors.request.use(
   (config) => {
-    try {
-      const user = JSON.parse(localStorage.getItem('miskara_user') || 'null');
-      if (user?.token) {
-        config.headers.Authorization = `Bearer ${user.token}`;
-      }
-    } catch {
-      // ignore parse errors
+    const token = localStorage.getItem('auth_token');
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
     }
     return config;
   },
@@ -34,7 +30,7 @@ api.interceptors.response.use(
   (error) => {
     if (error.response?.status === 401) {
       // Token expired or invalid — clear and redirect to login
-      localStorage.removeItem('miskara_user');
+      localStorage.removeItem('auth_token');
       if (!window.location.pathname.includes('/login')) {
         window.location.href = '/login';
       }

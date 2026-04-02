@@ -13,6 +13,20 @@ export function TrackOrder() {
   // Try real order first, then fallback to demo
   const order = getOrder(id || '') || DEMO_ORDERS.find(o => o._id === id) || DEMO_ORDERS[0];
 
+  if (!order) {
+    return <div style={{ padding: '8rem 2rem', textAlign: 'center' }}>Order not found</div>;
+  }
+
+  // Generate dynamic tracking steps if backend doesn't provide them
+  const trackingSteps = order.trackingSteps || [
+    { label: 'Order Placed', date: new Date(order.createdAt).toLocaleDateString(), done: true },
+    { label: 'Payment Confirmed', date: order.isPaid ? new Date(order.paidAt || order.createdAt).toLocaleDateString() : 'Pending', done: order.isPaid },
+    { label: 'Processing', date: 'In Progress', done: ['processing', 'shipped', 'delivered'].includes((order.status || '').toLowerCase()) },
+    { label: 'Shipped', date: order.status === 'shipped' || order.status === 'delivered' ? 'Completed' : 'Pending', done: ['shipped', 'delivered'].includes((order.status || '').toLowerCase()) },
+    { label: 'Out for Delivery', date: order.status === 'delivered' ? 'Completed' : 'Pending', done: order.status === 'delivered' },
+    { label: 'Delivered', date: order.isDelivered ? new Date(order.deliveredAt || Date.now()).toLocaleDateString() : 'Pending', done: !!order.isDelivered }
+  ];
+
   return (
     <div style={{ maxWidth: '800px', margin: '0 auto', padding: '8rem 1.5rem 4rem' }}>
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
@@ -22,7 +36,7 @@ export function TrackOrder() {
 
         {/* Timeline */}
         <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '1.5rem', padding: '2.5rem', backdropFilter: 'blur(40px)' }}>
-          {order.trackingSteps.map((step: any, i: number) => (
+          {trackingSteps.map((step: any, i: number) => (
             <div key={i} style={{ display: 'flex', gap: '1.5rem' }}>
               <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
                 <motion.div
@@ -35,7 +49,7 @@ export function TrackOrder() {
                   }}>
                   {STEP_ICONS[i] || <Check size={18} />}
                 </motion.div>
-                {i < order.trackingSteps.length - 1 && (
+                {i < trackingSteps.length - 1 && (
                   <div style={{ width: 2, height: 50, background: step.done ? '#22c55e' : 'rgba(255,255,255,0.06)' }} />
                 )}
               </div>

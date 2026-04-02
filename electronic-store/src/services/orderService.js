@@ -1,6 +1,7 @@
 import api from './api.js';
 
 export const orderService = {
+  placeOrderDirect: (data) => api.post('/orders/direct', data),
   createRazorpayOrder: (amount) => api.post('/orders/create-razorpay-order', { amount }),
   placeOrder: (data) => api.post('/orders', data),
   getMyOrders: () => api.get('/orders/myorders'),

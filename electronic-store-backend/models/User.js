@@ -7,7 +7,8 @@ const userSchema = new mongoose.Schema(
     name:     { type: String, required: true, trim: true },
     email:    { type: String, required: true, unique: true, lowercase: true },
     password: { type: String, required: true, minlength: 6 },
-    role:     { type: String, enum: ['user', 'admin'], default: 'user' },
+    role:     { type: String, enum: ['user', 'admin', 'seller'], default: 'user' },
+    theme:    { type: String, enum: ['light', 'dark'], default: 'dark' },
     phone:    { 
       type: String, 
       validate: {
@@ -40,6 +41,15 @@ const userSchema = new mongoose.Schema(
     // Forgot password
     resetPasswordToken:    String,
     resetPasswordExpire:   Date,
+
+    // Persistence
+    cart: [
+      {
+        product: { type: mongoose.Schema.Types.ObjectId, ref: 'Product' },
+        quantity: { type: Number, default: 1 }
+      }
+    ],
+    wishlist: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Product' }],
   },
   { timestamps: true }
 );

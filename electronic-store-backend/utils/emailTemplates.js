@@ -30,12 +30,11 @@ const BASE = (content) => `
 <body>
   <div class="wrap">
     <div class="top">
-      <div class="logo">Miskara</div>
-      <div class="sub">Jewellery</div>
+      <div class="logo">Electronic Store</div>
     </div>
     <div class="body">${content}</div>
     <div class="foot">
-      © ${new Date().getFullYear()} Miskara Jewellery · Made with ♥ in India<br/>
+      © ${new Date().getFullYear()} Electronic Store · Made with ♥ in India<br/>
       If you didn't request this email, you can safely ignore it.
     </div>
   </div>
@@ -45,7 +44,7 @@ const BASE = (content) => `
 export const verifyEmailTpl = (name, otp) => BASE(`
   <h2>Verify your email ✉️</h2>
   <p>Hi <strong>${name}</strong>,</p>
-  <p>Thank you for joining Miskara! Use the OTP below to verify your email address. It expires in <strong>10 minutes</strong>.</p>
+  <p>Thank you for joining Electronic Store! Use the OTP below to verify your email address. It expires in <strong>10 minutes</strong>.</p>
   <div class="otp">
     <div class="otp-n">${otp}</div>
     <div class="otp-l">Email Verification Code</div>
@@ -56,7 +55,7 @@ export const verifyEmailTpl = (name, otp) => BASE(`
 export const forgotPasswordTpl = (name, otp) => BASE(`
   <h2>Reset your password 🔑</h2>
   <p>Hi <strong>${name}</strong>,</p>
-  <p>We received a request to reset your Miskara password. Use the OTP below. It expires in <strong>10 minutes</strong>.</p>
+  <p>We received a request to reset your Electronic Store password. Use the OTP below. It expires in <strong>10 minutes</strong>.</p>
   <div class="otp">
     <div class="otp-n">${otp}</div>
     <div class="otp-l">Password Reset Code</div>
@@ -82,7 +81,7 @@ export const orderConfirmUserTpl = (name, order) => BASE(`
 
 export const orderAlertAdminTpl = (order, user) => BASE(`
   <h2>New Order Received 📦</h2>
-  <p>A new order has been placed on Miskara and needs your attention.</p>
+  <p>A new order has been placed on Electronic Store and needs your attention.</p>
   <div class="line"></div>
   <p><span class="tag">Order #${order._id.toString().slice(-8).toUpperCase()}</span></p>
   <table>

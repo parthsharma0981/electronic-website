@@ -1,0 +1,6 @@
+{
+  "signal": "SIGINT",
+  "delay": 1500,
+  "watch": ["*.js", "controllers/", "routes/", "models/", "middleware/", "config/", "utils/"],
+  "ignore": ["node_modules/", "*.test.js"]
+}

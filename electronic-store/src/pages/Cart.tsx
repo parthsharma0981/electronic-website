@@ -1,26 +1,31 @@
 import { motion, AnimatePresence } from 'framer-motion';
 import { useCart } from '../context/CartContext';
 import { Link } from 'react-router-dom';
-import { Plus, Minus, X, ArrowRight, ShoppingBag } from 'lucide-react';
-import { Product } from '../types';
+import { Plus, Minus, X, ArrowRight, ShoppingBag, Shield, Truck, RotateCcw } from 'lucide-react';
 
 export function Cart() {
   const { cart, updateQuantity, removeFromCart } = useCart();
 
   if (!cart || !cart.items || cart.items.length === 0) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center text-center p-8">
-        <motion.div 
-          initial={{ opacity: 0, scale: 0.9 }} 
+      <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center', padding: '8rem 2rem 4rem', position: 'relative' }}>
+        {/* Ambient glow */}
+        <div style={{ position: 'absolute', width: '500px', height: '500px', borderRadius: '50%', background: 'radial-gradient(circle, rgba(var(--primary-rgb), 0.08) 0%, transparent 70%)', top: '20%', left: '50%', transform: 'translateX(-50%)', filter: 'blur(60px)', pointerEvents: 'none' }} />
+        <motion.div
+          initial={{ opacity: 0, scale: 0.9 }}
           animate={{ opacity: 1, scale: 1 }}
-          className="w-24 h-24 bg-white/5 rounded-full flex items-center justify-center mb-8"
+          style={{ width: 100, height: 100, borderRadius: '50%', background: 'rgba(var(--primary-rgb), 0.08)', border: '1px solid rgba(var(--primary-rgb), 0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '2rem' }}
         >
-          <ShoppingBag size={40} className="text-text-muted" />
+          <ShoppingBag size={40} style={{ color: 'var(--primary)' }} />
         </motion.div>
-        <h2 className="text-5xl font-black font-outfit mb-4 uppercase">Your bag is empty</h2>
-        <p className="text-text-muted tracking-[0.2em] uppercase text-xs mb-12">Free delivery and returns on all core products.</p>
-        <Link to="/products" className="btn-premium px-12 py-5">
-          Continue Shopping
+        <h2 style={{ fontSize: '2.5rem', fontWeight: 900, fontFamily: '"Outfit", sans-serif', marginBottom: '1rem', textTransform: 'uppercase', color: 'var(--foreground)' }}>
+          Your bag is empty
+        </h2>
+        <p style={{ color: 'var(--text-muted)', letterSpacing: '0.2em', textTransform: 'uppercase', fontSize: '0.75rem', marginBottom: '3rem' }}>
+          Free delivery and returns on all core products.
+        </p>
+        <Link to="/products" className="btn-glow" style={{ padding: '1.15rem 3rem', textDecoration: 'none', borderRadius: '9999px' }}>
+          Continue Shopping <ArrowRight size={18} />
         </Link>
       </div>
     );
@@ -32,121 +37,224 @@ export function Cart() {
   const total = subtotal + shipping + tax;
 
   return (
-    <div className="container section-padding min-h-screen">
-      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-        <h1 className="text-7xl font-black font-outfit mb-16 uppercase tracking-tight">
-          Shopping <span className="text-primary italic">Bag</span>
-        </h1>
+    <div style={{ maxWidth: '80rem', margin: '0 auto', padding: '6rem 1.5rem 4rem', position: 'relative' }}>
+      {/* Ambient glow background decoration */}
+      <div style={{ position: 'fixed', width: '600px', height: '600px', borderRadius: '50%', background: 'radial-gradient(circle, rgba(var(--primary-rgb), 0.04) 0%, transparent 70%)', top: '10%', right: '-10%', filter: 'blur(80px)', pointerEvents: 'none', zIndex: 0 }} />
+      <div style={{ position: 'fixed', width: '400px', height: '400px', borderRadius: '50%', background: 'radial-gradient(circle, rgba(var(--accent-rgb), 0.03) 0%, transparent 70%)', bottom: '20%', left: '-5%', filter: 'blur(60px)', pointerEvents: 'none', zIndex: 0 }} />
 
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-16 items-start">
-          
+      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} style={{ position: 'relative', zIndex: 1 }}>
+        {/* Title */}
+        <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }}>
+          <p style={{ fontSize: '0.65rem', fontWeight: 700, letterSpacing: '0.3em', textTransform: 'uppercase', color: 'var(--primary)', marginBottom: '0.75rem' }}>
+            Your Collection
+          </p>
+          <h1 style={{ fontSize: 'clamp(2.5rem, 5vw, 4rem)', fontWeight: 900, fontFamily: '"Outfit", sans-serif', marginBottom: '0.5rem', textTransform: 'uppercase', letterSpacing: '-0.025em', color: 'var(--foreground)', lineHeight: 1.1 }}>
+            Shopping <span className="gradient-text" style={{ fontStyle: 'italic' }}>Bag</span>
+          </h1>
+          <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', marginBottom: '3rem' }}>
+            {cart.items.length} item{cart.items.length !== 1 ? 's' : ''} in your bag
+          </p>
+        </motion.div>
+
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 420px', gap: '3rem', alignItems: 'start' }}>
+
           {/* Cart Items */}
-          <div className="lg:col-span-8 space-y-8">
-            <div className="hidden md:grid grid-cols-12 pb-6 border-bottom border-white/10 text-[10px] font-black tracking-widest uppercase text-text-muted">
-              <span className="col-span-6">Product</span>
-              <span className="col-span-3 text-center">Quantity</span>
-              <span className="col-span-3 text-right">Total</span>
+          <div>
+            {/* Header Row */}
+            <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr', paddingBottom: '1.25rem', borderBottom: '1px solid rgba(var(--primary-rgb), 0.08)', fontSize: '0.6rem', fontWeight: 800, letterSpacing: '0.2em', textTransform: 'uppercase', color: 'var(--text-muted)' }}>
+              <span>Product</span>
+              <span style={{ textAlign: 'center' }}>Quantity</span>
+              <span style={{ textAlign: 'right' }}>Total</span>
             </div>
 
-            <div className="space-y-8">
-              <AnimatePresence mode="popLayout">
-                {cart.items.map((item: { product: Product, quantity: number }, idx: number) => {
-                  const product = item.product;
-                  const imageUrl = product.images?.[0]?.url || (product as any).image;
+            {/* Items */}
+            <AnimatePresence mode="popLayout">
+              {cart.items.map((item: any, idx: number) => {
+                const product = item.product || {};
+                const imageUrl = product?.images?.[0]?.url || product?.image || '';
 
-                  return (
-                    <motion.div 
-                      layout
-                      key={product._id}
-                      initial={{ opacity: 0, x: -20 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      exit={{ opacity: 0, x: 20 }}
-                      transition={{ delay: idx * 0.05 }}
-                      className="grid grid-cols-1 md:grid-cols-12 gap-8 items-center pb-8 border-b border-white/5"
-                    >
-                      <div className="col-span-1 md:col-span-6 flex gap-8 items-center">
-                        <div className="w-32 aspect-[3/4] bg-bg-surface overflow-hidden glass-card">
-                          <img src={imageUrl} alt={product.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" />
-                        </div>
-                        <div>
-                          <h3 className="text-xl font-bold font-outfit uppercase truncate">{product.name}</h3>
-                          <p className="text-xs text-text-muted uppercase tracking-widest mt-1 mb-4">{product.category}</p>
-                          <p className="text-lg font-medium">${product.price.toLocaleString()}</p>
-                          
-                          <button 
-                            onClick={() => removeFromCart(product._id)} 
-                            className="flex items-center gap-2 mt-6 text-[10px] font-black uppercase text-text-muted hover:text-red-400 transition-colors"
-                          >
-                            <X size={12} strokeWidth={3} /> Remove
-                          </button>
-                        </div>
+                return (
+                  <motion.div
+                    layout
+                    key={product?._id || idx}
+                    initial={{ opacity: 0, x: -30 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: 30, height: 0, marginTop: 0, paddingTop: 0, paddingBottom: 0 }}
+                    transition={{ delay: idx * 0.05 }}
+                    style={{
+                      display: 'grid',
+                      gridTemplateColumns: '2fr 1fr 1fr',
+                      alignItems: 'center',
+                      padding: '1.75rem 0',
+                      borderBottom: '1px solid var(--glass-border)',
+                    }}
+                  >
+                    {/* Product Info */}
+                    <div style={{ display: 'flex', gap: '1.25rem', alignItems: 'center' }}>
+                      <motion.div
+                        whileHover={{ scale: 1.05 }}
+                        style={{
+                          width: 100, height: 120, borderRadius: '1rem', overflow: 'hidden',
+                          background: 'var(--bg-card)', flexShrink: 0,
+                          border: '1px solid rgba(var(--primary-rgb), 0.08)',
+                          boxShadow: '0 4px 20px rgba(0,0,0,0.2)',
+                        }}>
+                        {imageUrl && (
+                          <img src={imageUrl} alt={product?.name || 'Item'} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                        )}
+                      </motion.div>
+                      <div>
+                        <h3 style={{ fontSize: '1rem', fontWeight: 700, fontFamily: '"Outfit", sans-serif', textTransform: 'uppercase', marginBottom: '0.2rem', color: 'var(--foreground)', letterSpacing: '0.02em' }}>
+                          {product?.name || 'Unavailable Item'}
+                        </h3>
+                        <p style={{ fontSize: '0.65rem', color: 'var(--primary)', textTransform: 'uppercase', letterSpacing: '0.15em', marginBottom: '0.5rem', fontWeight: 600 }}>
+                          {product?.category || 'Unknown'}
+                        </p>
+                        <p style={{ fontSize: '1rem', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '0.75rem' }}>
+                          ${(product?.price || 0).toLocaleString()}
+                        </p>
+                        <button
+                          onClick={() => removeFromCart(product?._id)}
+                          style={{
+                            display: 'flex', alignItems: 'center', gap: '0.4rem',
+                            fontSize: '0.65rem', fontWeight: 700, textTransform: 'uppercase',
+                            color: 'var(--text-muted)', background: 'none', border: 'none',
+                            cursor: 'pointer', padding: 0, letterSpacing: '0.1em',
+                            transition: 'color 0.2s',
+                          }}
+                          onMouseEnter={(e) => (e.currentTarget.style.color = '#f87171')}
+                          onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--text-muted)')}
+                        >
+                          <X size={12} strokeWidth={3} /> Remove
+                        </button>
                       </div>
+                    </div>
 
-                      <div className="col-span-1 md:col-span-3 flex justify-center">
-                        <div className="flex items-center gap-4 rounded-full border border-white/10 px-4 py-2">
-                          <button 
-                            onClick={() => updateQuantity(product._id, item.quantity - 1)} 
-                            className="text-text-secondary hover:text-white transition-colors"
-                          >
-                            <Minus size={14} />
-                          </button>
-                          <span className="w-8 text-center font-bold">{item.quantity}</span>
-                          <button 
-                            onClick={() => updateQuantity(product._id, item.quantity + 1)} 
-                            className="text-text-secondary hover:text-white transition-colors"
-                          >
-                            <Plus size={14} />
-                          </button>
-                        </div>
+                    {/* Quantity Controls */}
+                    <div style={{ display: 'flex', justifyContent: 'center' }}>
+                      <div style={{
+                        display: 'flex', alignItems: 'center', gap: '0.5rem',
+                        borderRadius: '9999px', border: '1px solid rgba(var(--primary-rgb), 0.12)',
+                        padding: '0.4rem 0.75rem', background: 'rgba(var(--primary-rgb), 0.04)',
+                      }}>
+                        <button
+                          onClick={() => updateQuantity(product?._id, item.quantity - 1)}
+                          style={{ background: 'none', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', padding: '0.25rem', display: 'flex', alignItems: 'center', transition: 'color 0.2s' }}
+                          onMouseEnter={e => e.currentTarget.style.color = 'var(--primary)'}
+                          onMouseLeave={e => e.currentTarget.style.color = 'var(--text-secondary)'}
+                        >
+                          <Minus size={14} />
+                        </button>
+                        <span style={{ width: '2rem', textAlign: 'center', fontWeight: 800, fontSize: '0.9rem', color: 'var(--foreground)', fontFamily: '"Outfit", sans-serif' }}>
+                          {item.quantity}
+                        </span>
+                        <button
+                          onClick={() => updateQuantity(product?._id, item.quantity + 1)}
+                          style={{ background: 'none', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', padding: '0.25rem', display: 'flex', alignItems: 'center', transition: 'color 0.2s' }}
+                          onMouseEnter={e => e.currentTarget.style.color = 'var(--primary)'}
+                          onMouseLeave={e => e.currentTarget.style.color = 'var(--text-secondary)'}
+                        >
+                          <Plus size={14} />
+                        </button>
                       </div>
+                    </div>
 
-                      <div className="col-span-1 md:col-span-3 text-right text-2xl font-black font-outfit">
-                        ${(product.price * item.quantity).toLocaleString()}
-                      </div>
-                    </motion.div>
-                  );
-                })}
-              </AnimatePresence>
-            </div>
+                    {/* Item Total */}
+                    <div style={{ textAlign: 'right' }}>
+                      <span style={{ fontSize: '1.25rem', fontWeight: 900, fontFamily: '"Outfit", sans-serif', color: 'var(--foreground)' }}>
+                        ${((product?.price || 0) * item.quantity).toLocaleString()}
+                      </span>
+                    </div>
+                  </motion.div>
+                );
+              })}
+            </AnimatePresence>
+
+            {/* Continue Shopping link */}
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.3 }} style={{ marginTop: '2rem' }}>
+              <Link to="/products" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', color: 'var(--primary)', textDecoration: 'none', fontSize: '0.8rem', fontWeight: 600, letterSpacing: '0.05em', transition: 'opacity 0.2s' }}>
+                ← Continue Shopping
+              </Link>
+            </motion.div>
           </div>
-          
+
           {/* Order Summary */}
-          <div className="lg:col-span-4 sticky top-32">
-            <div className="glass-card p-10 bg-bg-surface/50 border-white/5">
-              <h2 className="text-sm font-black tracking-widest uppercase mb-10 font-outfit border-b border-white/10 pb-4">
-                Summary
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2 }}
+            style={{ position: 'sticky', top: '7rem' }}
+          >
+            <div style={{
+              background: 'var(--bg-card)',
+              border: '1px solid rgba(var(--primary-rgb), 0.1)',
+              backdropFilter: 'blur(40px)',
+              borderRadius: '1.5rem',
+              padding: '2rem',
+              boxShadow: '0 8px 40px rgba(0,0,0,0.2), 0 0 60px rgba(var(--primary-rgb), 0.03)',
+              position: 'relative',
+              overflow: 'hidden',
+            }}>
+              {/* Decorative gradient accent on top */}
+              <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '3px', background: 'var(--gradient-primary)' }} />
+              
+              <h2 style={{
+                fontSize: '0.75rem', fontWeight: 900, letterSpacing: '0.2em',
+                textTransform: 'uppercase', marginBottom: '1.75rem', fontFamily: '"Outfit", sans-serif',
+                paddingBottom: '1rem', borderBottom: '1px solid var(--glass-border)', color: 'var(--foreground)',
+              }}>
+                Order Summary
               </h2>
 
-              <div className="space-y-6 text-sm text-text-secondary mb-10">
-                <div className="flex justify-between">
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', fontSize: '0.9rem', color: 'var(--text-secondary)', marginBottom: '1.75rem' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                   <span>Subtotal</span>
-                  <span className="text-white font-bold">${subtotal.toLocaleString(undefined, {minimumFractionDigits: 2})}</span>
+                  <span style={{ color: 'var(--foreground)', fontWeight: 700 }}>${subtotal.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
                 </div>
-                <div className="flex justify-between">
-                  <span>Shipping</span>
-                  <span className="text-emerald-400 font-bold">{shipping === 0 ? 'FREE' : `$${shipping.toFixed(2)}`}</span>
+                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <span style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                    <Truck size={14} style={{ color: 'var(--primary)' }} /> Shipping
+                  </span>
+                  <span style={{ color: shipping === 0 ? '#34d399' : 'var(--foreground)', fontWeight: 700 }}>{shipping === 0 ? 'FREE' : `$${shipping.toFixed(2)}`}</span>
                 </div>
-                <div className="flex justify-between">
+                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                   <span>Estimated Tax</span>
-                  <span className="text-white font-bold">${tax.toLocaleString(undefined, {minimumFractionDigits: 2})}</span>
+                  <span style={{ color: 'var(--foreground)', fontWeight: 700 }}>${tax.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
                 </div>
               </div>
 
-              <div className="flex justify-between items-center pt-8 border-t border-white/10 mb-10">
-                <span className="text-xs font-black uppercase tracking-widest">Total</span>
-                <span className="text-3xl font-black font-outfit">${total.toLocaleString(undefined, {minimumFractionDigits: 2})}</span>
+              <div style={{
+                display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                paddingTop: '1.25rem', borderTop: '1px solid var(--glass-border)', marginBottom: '1.75rem',
+              }}>
+                <span style={{ fontSize: '0.7rem', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.15em', color: 'var(--text-muted)' }}>Total</span>
+                <span className="gradient-text" style={{ fontSize: '2rem', fontWeight: 900, fontFamily: '"Outfit", sans-serif' }}>
+                  ${total.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                </span>
               </div>
 
-              <Link to="/checkout" className="btn-premium w-full py-5 justify-center gap-3 text-lg bg-white text-black hover:bg-white/90">
+              <Link to="/checkout" className="btn-glow" style={{
+                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.75rem',
+                width: '100%', padding: '1.15rem', borderRadius: '0.75rem',
+                textDecoration: 'none', fontSize: '1rem',
+              }}>
                 Checkout <ArrowRight size={20} />
               </Link>
 
-              <p className="mt-8 text-[10px] text-text-muted leading-relaxed uppercase tracking-widest text-center">
-                Secure SSL Encrypted Checkout
-              </p>
+              {/* Trust badges */}
+              <div style={{ display: 'flex', justifyContent: 'center', gap: '1.5rem', marginTop: '1.5rem', paddingTop: '1.25rem', borderTop: '1px solid var(--glass-border)' }}>
+                {[
+                  { icon: <Shield size={13} />, label: 'Secure' },
+                  { icon: <Truck size={13} />, label: 'Fast Ship' },
+                  { icon: <RotateCcw size={13} />, label: '30-Day Return' },
+                ].map(b => (
+                  <div key={b.label} style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', fontSize: '0.6rem', fontWeight: 600, color: 'var(--text-muted)', letterSpacing: '0.05em', textTransform: 'uppercase' }}>
+                    <span style={{ color: 'var(--primary)' }}>{b.icon}</span> {b.label}
+                  </div>
+                ))}
+              </div>
             </div>
-          </div>
-
+          </motion.div>
         </div>
       </motion.div>
     </div>

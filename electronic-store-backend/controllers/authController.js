@@ -11,7 +11,7 @@ const pendingRegistrations = new Map();
 
 // ── Step 1: Send OTP — do NOT save to DB yet ──────────────────
 export const registerUser = asyncHandler(async (req, res) => {
-  const { name, email, password, phone } = req.body;
+  const { name, email, password, phone, street, city, state, pincode } = req.body;
 
   // Check if email already registered in DB
   const exists = await User.findOne({ email });
@@ -33,6 +33,12 @@ export const registerUser = asyncHandler(async (req, res) => {
     email,
     hashedPassword: hashedPwd,
     phone: phone || '',
+    address: {
+      street: street || '',
+      city: city || '',
+      state: state || '',
+      pincode: pincode || ''
+    },
     otpHashed,
     otpExpire,
   });
@@ -41,7 +47,7 @@ export const registerUser = asyncHandler(async (req, res) => {
   try {
     await sendEmail({
       to: email,
-      subject: 'Miskara — Verify Your Email to Complete Registration',
+      subject: 'Electronic Store — Verify Your Email to Complete Registration',
       html: verifyEmailTpl(name, otp),
     });
   } catch (err) {
@@ -97,6 +103,7 @@ export const verifyEmailAndRegister = asyncHandler(async (req, res) => {
     email:           pending.email,
     password:        pending.hashedPassword,
     phone:           pending.phone,
+    address:         pending.address,
     isEmailVerified: true,   // already verified
   });
 
@@ -109,6 +116,9 @@ export const verifyEmailAndRegister = asyncHandler(async (req, res) => {
     email:           user.email,
     role:            user.role,
     isEmailVerified: true,
+    cart:            user.cart || [],
+    wishlist:        user.wishlist || [],
+    theme:           user.theme || 'dark',
     token:           generateToken(user._id),
     message:         'Email verified! Account created successfully.',
   });
@@ -134,7 +144,7 @@ export const resendRegistrationOTP = asyncHandler(async (req, res) => {
 
   await sendEmail({
     to:      email,
-    subject: 'Miskara — New OTP for Email Verification',
+    subject: 'Electronic Store — New OTP for Email Verification',
     html:    verifyEmailTpl(pending.name, otp),
   });
 
@@ -144,7 +154,9 @@ export const resendRegistrationOTP = asyncHandler(async (req, res) => {
 // ── Login ─────────────────────────────────────────────────────
 export const loginUser = asyncHandler(async (req, res) => {
   const { email, password } = req.body;
-  const user = await User.findOne({ email });
+  const user = await User.findOne({ email })
+    .populate('cart.product', 'name price images stock')
+    .populate('wishlist', 'name price images stock category badge rating numReviews description originalPrice specs');
 
   if (!user || !(await user.matchPassword(password))) {
     res.status(401);
@@ -157,6 +169,9 @@ export const loginUser = asyncHandler(async (req, res) => {
     email:           user.email,
     role:            user.role,
     isEmailVerified: user.isEmailVerified,
+    cart:            user.cart || [],
+    wishlist:        user.wishlist || [],
+    theme:           user.theme || 'dark',
     token:           generateToken(user._id),
   });
 });
@@ -171,7 +186,7 @@ export const forgotPassword = asyncHandler(async (req, res) => {
 
   await sendEmail({
     to:      user.email,
-    subject: 'Miskara — Reset Your Password',
+    subject: 'Electronic Store — Reset Your Password',
     html:    forgotPasswordTpl(user.name, otp),
   });
 
@@ -200,7 +215,11 @@ export const resetPassword = asyncHandler(async (req, res) => {
 
 // ── Get Profile ───────────────────────────────────────────────
 export const getUserProfile = asyncHandler(async (req, res) => {
-  const user = await User.findById(req.user._id).select('-password');
+  const user = await User.findById(req.user._id)
+    .select('-password')
+    .populate('cart.product', 'name price images stock')
+    .populate('wishlist', 'name price images stock category badge rating numReviews description originalPrice specs');
+
   if (!user) { res.status(404); throw new Error('User not found'); }
   res.json(user);
 });
@@ -212,16 +231,59 @@ export const updateUserProfile = asyncHandler(async (req, res) => {
 
   user.name    = req.body.name    || user.name;
   user.phone   = req.body.phone   || user.phone;
-  user.address = req.body.address || user.address;
+  if (req.body.address) {
+    if (typeof req.body.address === 'string') {
+      user.address = { ...user.address, street: req.body.address };
+    } else {
+      user.address = req.body.address;
+    }
+  }
+  user.theme   = req.body.theme   || user.theme;
   if (req.body.password) user.password = req.body.password;
 
-  const updated = await user.save();
+  await user.save();
+  
+  const updated = await User.findById(req.user._id)
+    .populate('cart.product', 'name price images stock')
+    .populate('wishlist', 'name price images stock category badge rating numReviews description originalPrice specs');
+
   res.json({
     _id:             updated._id,
     name:            updated.name,
     email:           updated.email,
     role:            updated.role,
     isEmailVerified: updated.isEmailVerified,
+    cart:            updated.cart || [],
+    wishlist:        updated.wishlist || [],
+    theme:           updated.theme || 'dark',
     token:           generateToken(updated._id),
   });
+});
+
+// ── Update Cart ───────────────────────────────────────────────
+export const updateCart = asyncHandler(async (req, res) => {
+  const user = await User.findById(req.user._id);
+  if (!user) { res.status(404); throw new Error('User not found'); }
+
+  user.cart = req.body.cart; // Expecting [{ product, quantity }]
+  await user.save();
+  
+  const updatedUser = await User.findById(req.user._id)
+    .populate('cart.product', 'name price images stock');
+    
+  res.json(updatedUser.cart);
+});
+
+// ── Update Wishlist ───────────────────────────────────────────
+export const updateWishlist = asyncHandler(async (req, res) => {
+  const user = await User.findById(req.user._id);
+  if (!user) { res.status(404); throw new Error('User not found'); }
+
+  user.wishlist = req.body.wishlist; // Expecting [productId]
+  await user.save();
+  
+  const updatedUser = await User.findById(req.user._id)
+    .populate('wishlist', 'name price images stock category badge rating numReviews description originalPrice specs');
+    
+  res.json(updatedUser.wishlist);
 });

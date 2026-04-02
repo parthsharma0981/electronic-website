@@ -1,60 +1,57 @@
-import { createContext, useContext, useState, useCallback } from 'react';
-import { PRODUCTS as INITIAL_PRODUCTS } from '../data/demoData';
+import { createContext, useContext, useState, useCallback, useEffect } from 'react';
+import { productService } from '../services/productService.js';
 
 const ProductContext = createContext<any>(null);
 
-const STORAGE_KEY = 'ecore_products';
-
-const loadProducts = (): any[] => {
-  try {
-    const stored = localStorage.getItem(STORAGE_KEY);
-    if (stored) return JSON.parse(stored);
-  } catch {}
-  return INITIAL_PRODUCTS as any[];
-};
-
-const saveProducts = (products: any[]) => {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(products));
-};
-
 export const ProductProvider = ({ children }: { children: React.ReactNode }) => {
-  const [products, setProducts] = useState<any[]>(loadProducts);
+  const [products, setProducts] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
 
-  const addProduct = useCallback((product: any) => {
-    const newProduct = {
-      ...product,
-      _id: 'p_' + Date.now(),
-      numReviews: 0,
-      rating: 0,
-      stock: parseInt(product.stock) || 50,
-      price: parseFloat(product.price) || 0,
-      originalPrice: parseFloat(product.originalPrice) || parseFloat(product.price) || 0,
-      images: product.imageUrl ? [{ url: product.imageUrl }] : [{ url: 'https://images.unsplash.com/photo-1526738549149-8e07eca6c147?auto=format&fit=crop&q=80&w=600' }],
-      specs: product.specs || {},
-      createdAt: new Date().toISOString(),
-    };
-    setProducts((prev: any[]) => {
-      const updated = [newProduct, ...prev];
-      saveProducts(updated);
-      return updated;
-    });
-    return newProduct;
+  // Fetch products from API on mount
+  useEffect(() => {
+    setLoading(true);
+    productService.getAll()
+      .then((res: any) => {
+        const data = res.data;
+        if (data.products && data.products.length > 0) {
+          setProducts(data.products);
+        } else if (Array.isArray(data) && data.length > 0) {
+          setProducts(data);
+        }
+      })
+      .catch((err) => {
+        console.error('API Error fetching products:', err);
+      })
+      .finally(() => setLoading(false));
   }, []);
 
-  const deleteProduct = useCallback((productId: string) => {
-    setProducts((prev: any[]) => {
-      const updated = prev.filter((p: any) => p._id !== productId);
-      saveProducts(updated);
-      return updated;
-    });
+  const addProduct = useCallback(async (product: any) => {
+    try {
+      const { data } = await productService.create(product);
+      setProducts((prev: any[]) => [data, ...prev]);
+      return data;
+    } catch (err) {
+      console.error('Failed to add product:', err);
+      throw err;
+    }
   }, []);
 
-  const updateProduct = useCallback((productId: string, data: any) => {
-    setProducts((prev: any[]) => {
-      const updated = prev.map((p: any) => p._id === productId ? { ...p, ...data } : p);
-      saveProducts(updated);
-      return updated;
-    });
+  const deleteProduct = useCallback(async (productId: string) => {
+    try {
+      await productService.delete(productId);
+      setProducts((prev: any[]) => prev.filter((p: any) => p._id !== productId));
+    } catch (err) {
+      console.error('Failed to delete product:', err);
+    }
+  }, []);
+
+  const updateProduct = useCallback(async (productId: string, data: any) => {
+    try {
+      await productService.update(productId, data);
+      setProducts((prev: any[]) => prev.map((p: any) => p._id === productId ? { ...p, ...data } : p));
+    } catch (err) {
+      console.error('Failed to update product:', err);
+    }
   }, []);
 
   const getProduct = useCallback((id: string) => {
@@ -63,15 +60,13 @@ export const ProductProvider = ({ children }: { children: React.ReactNode }) => 
 
   const decreaseStock = useCallback((items: any[]) => {
     setProducts((prev: any[]) => {
-      const updated = prev.map((p: any) => {
-        const cartItem = items.find((i: any) => i._id === p._id);
+      return prev.map((p: any) => {
+        const cartItem = items.find((i: any) => (i._id || i.product) === p._id);
         if (cartItem && p.stock !== undefined) {
           return { ...p, stock: Math.max(0, p.stock - cartItem.quantity) };
         }
         return p;
       });
-      saveProducts(updated);
-      return updated;
     });
   }, []);
 
@@ -87,7 +82,7 @@ export const ProductProvider = ({ children }: { children: React.ReactNode }) => 
 
   return (
     <ProductContext.Provider value={{
-      products, addProduct, deleteProduct, updateProduct, getProduct, decreaseStock,
+      products, loading, addProduct, deleteProduct, updateProduct, getProduct, decreaseStock,
       totalProducts, totalValue, bestSellers, lowStock, categoryBreakdown,
     }}>
       {children}

@@ -1,47 +1,52 @@
-import { createContext, useContext, useState, useCallback } from 'react';
-import { DEMO_USERS } from '../data/demoData';
+import { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import toast from 'react-hot-toast';
 
 const AuthContext = createContext<any>(null);
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
-  const [user, setUser] = useState<any>(() => {
-    try { return JSON.parse(localStorage.getItem('ecore_user') || 'null') || null; }
-    catch { return null; }
-  });
+  const [user, setUser] = useState<any>(null);
+  const [loadingInitial, setLoadingInitial] = useState(true);
+
+  // Initialize Auth state entirely from backend based on the auth_token
+  useEffect(() => {
+    const initializeAuth = async () => {
+      const token = localStorage.getItem('auth_token');
+      if (!token) {
+        setUser(null);
+        setLoadingInitial(false);
+        return;
+      }
+
+      try {
+        const { authService } = await import('../services/authService.js');
+        const { data: profile } = await authService.getProfile();
+        // Construct the expected user object from profile data + token
+        setUser({ ...profile, token });
+      } catch (err) {
+        console.error('Failed to restore session from backend:', err);
+        localStorage.removeItem('auth_token');
+        setUser(null);
+      } finally {
+        setLoadingInitial(false);
+      }
+    };
+
+    initializeAuth();
+  }, []);
 
   const login = useCallback(async (creds: any) => {
-    // Check admin login first (parth / parth123)
-    if (creds.email === 'parth' && creds.password === 'parth123') {
-      const adminUser: any = { ...(DEMO_USERS as any).admin };
-      delete adminUser.password;
-      localStorage.setItem('ecore_user', JSON.stringify(adminUser));
-      setUser(adminUser);
-      return adminUser;
-    }
-
-    // Try backend first, fallback to demo data
     try {
       const { authService } = await import('../services/authService.js');
       const { data } = await (authService as any).login(creds);
-      localStorage.setItem('ecore_user', JSON.stringify(data));
+      
+      // Store ONLY the token in localStorage
+      localStorage.setItem('auth_token', data.token);
       setUser(data);
       return data;
-    } catch {
-      // Demo login fallback — match by email
-      const demoUser: any = Object.values(DEMO_USERS as any).find((u: any) => u.email === creds.email);
-      if (demoUser) {
-        const safeUser: any = { ...demoUser };
-        delete safeUser.password;
-        localStorage.setItem('ecore_user', JSON.stringify(safeUser));
-        setUser(safeUser);
-        return safeUser;
-      }
-      // Auto-create demo user for any email/password
-      const newUser = { ...(DEMO_USERS as any).buyer, _id: 'u_' + Date.now(), name: creds.email.split('@')[0], email: creds.email };
-      localStorage.setItem('ecore_user', JSON.stringify(newUser));
-      setUser(newUser);
-      return newUser;
+    } catch (err: any) {
+      const message = err.response?.data?.message || 'Login failed';
+      toast.error(message);
+      throw err;
     }
   }, []);
 
@@ -49,36 +54,42 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     try {
       const { authService } = await import('../services/authService.js');
       const { data } = await (authService as any).register(userData);
-      localStorage.setItem('ecore_user', JSON.stringify(data));
-      setUser(data);
+      
+      // Some register endpoints auto-login, if so store token
+      if (data?.token) {
+        localStorage.setItem('auth_token', data.token);
+        setUser(data);
+      }
       return data;
-    } catch {
-      // Demo register fallback
-      const newUser = {
-        _id: 'u_' + Date.now(),
-        name: userData.name,
-        email: userData.email,
-        role: 'buyer',
-        isEmailVerified: true,
-        token: 'demo_token_' + Date.now(),
-      };
-      localStorage.setItem('ecore_user', JSON.stringify(newUser));
-      setUser(newUser);
-      return newUser;
+    } catch (err: any) {
+      const message = err.response?.data?.message || 'Registration failed';
+      toast.error(message);
+      throw err;
     }
   }, []);
 
   const logout = useCallback(() => {
-    localStorage.removeItem('ecore_user');
+    // Remove only the token
+    localStorage.removeItem('auth_token');
     setUser(null);
+    import('../services/authService.js').then(({ authService }) => {
+       // Optional: call backend logout API if it exists
+    });
     toast.success('Logged out');
   }, []);
 
-  const updateUser = useCallback((data: any) => {
-    const updated = { ...user, ...data };
-    localStorage.setItem('ecore_user', JSON.stringify(updated));
-    setUser(updated);
-  }, [user]);
+  const updateUser = useCallback(async (updateData: any) => {
+    try {
+      const { authService } = await import('../services/authService.js');
+      const { data: updatedData } = await authService.updateProfile(updateData);
+      
+      setUser((prev: any) => ({ ...prev, ...updatedData }));
+      return updatedData;
+    } catch (err) {
+      console.error('Failed to update profile:', err);
+      throw err;
+    }
+  }, []);
 
   return (
     <AuthContext.Provider value={{
@@ -89,8 +100,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       updateUser,
       isAdmin: user?.role === 'admin',
       isVerified: user?.isEmailVerified,
+      loadingInitial, 
     }}>
-      {children}
+      {!loadingInitial && children}
     </AuthContext.Provider>
   );
 };

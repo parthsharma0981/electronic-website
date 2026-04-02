@@ -74,16 +74,16 @@ export const placeOrder = asyncHandler(async (req, res) => {
     status: 'Pending',
   });
 
-  // Reduce stock
+  // Reduce stock & increment sales
   for (const item of orderItems) {
-    await Product.findByIdAndUpdate(item.product, { $inc: { stock: -item.quantity } });
+    await Product.findByIdAndUpdate(item.product, { $inc: { stock: -item.quantity, salesCount: item.quantity } });
   }
 
   // Email to USER
   try {
     await sendEmail({
       to:      req.user.email,
-      subject: `Miskara — Order Confirmed #${order._id.toString().slice(-8).toUpperCase()}`,
+      subject: `Electronic Store — Order Confirmed #${order._id.toString().slice(-8).toUpperCase()}`,
       html:    orderConfirmUserTpl(req.user.name, order),
     });
   } catch (e) { console.error('User order email failed:', e.message); }
@@ -182,7 +182,7 @@ export const updateOrderStatus = asyncHandler(async (req, res) => {
   try {
     await sendEmail({
       to:      order.user.email,
-      subject: `Miskara — Order ${status} #${order._id.toString().slice(-8).toUpperCase()}`,
+      subject: `Electronic Store — Order ${status} #${order._id.toString().slice(-8).toUpperCase()}`,
       html:    orderStatusTpl(order.user.name, order, status),
     });
   } catch (e) { console.error('Status email failed:', e.message); }

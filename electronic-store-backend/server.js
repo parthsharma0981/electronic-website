@@ -11,6 +11,7 @@ import rateLimit  from 'express-rate-limit';
 import path       from 'path';
 
 import { fileURLToPath } from 'url';
+import { execSync } from 'child_process';
 
 import connectDB  from './config/db.js';
 
@@ -83,11 +84,6 @@ const getAllowedOrigins = () => {
   // Always allow production domains
 
   const origins = [
-
-    'https://www.miskara.co',
-
-    'https://miskara.co',
-
   ];
 
 
@@ -168,6 +164,12 @@ app.use(express.json({ limit: '10mb' }));
 
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
+// Request logging for debugging
+app.use((req, res, next) => {
+  console.log(`${new Date().toISOString()} | ${req.method} ${req.url}`);
+  next();
+});
+
 
 
 // Rate limiting
@@ -226,7 +228,7 @@ if (isProd) {
 
 } else {
 
-  app.get('/', (req, res) => res.json({ message: 'Miskara API ✨' }));
+  app.get('/', (req, res) => res.json({ message: 'Electronic Store API ✨' }));
 
 }
 
@@ -237,23 +239,53 @@ app.use(notFound);
 app.use(errorHandler);
 
 
-
 const PORT = process.env.PORT || 5000;
 
-app.listen(PORT, () => {
+// Robust server start — auto-recovers from EADDRINUSE on Windows
 
-  console.log(`🚀 Server running on port ${PORT} [${isProd ? 'PRODUCTION' : 'development'}]`);
+function startServer(retries = 3) {
+  const server = app.listen(PORT, () => {
+    console.log(`🚀 Server running on port ${PORT} [${isProd ? 'PRODUCTION' : 'development'}]`);
+    console.log(`📡 Allowed origins: ${getAllowedOrigins().join(', ') || 'ALL (dev mode)'}`);
+  });
 
-  console.log(`📡 Allowed origins: ${getAllowedOrigins().join(', ') || 'ALL (dev mode)'}`);
+  server.on('error', (err) => {
+    if (err.code === 'EADDRINUSE' && retries > 0) {
+      console.log(`⚠️  Port ${PORT} in use. Killing blocking process...`);
+      try {
+        // Find and kill the process on Windows
+        const result = execSync(`netstat -ano | findstr :${PORT} | findstr LISTENING`, { encoding: 'utf8' });
+        const lines = result.trim().split('\n');
+        const pids = [...new Set(lines.map(l => l.trim().split(/\s+/).pop()))];
+        for (const pid of pids) {
+          if (pid && pid !== '0') {
+            try { execSync(`taskkill /PID ${pid} /F`, { encoding: 'utf8' }); } catch {}
+          }
+        }
+        console.log(`   Killed PID(s): ${pids.join(', ')}. Retrying in 2s...`);
+      } catch {
+        console.log('   Could not auto-kill. Retrying in 2s...');
+      }
+      setTimeout(() => startServer(retries - 1), 2000);
+    } else {
+      console.error('❌ Server failed to start:', err.message);
+      process.exit(1);
+    }
+  });
 
-});
+  // Graceful shutdown
+  const shutdown = (signal) => {
+    console.log(`\n${signal} received. Shutting down...`);
+    server.close(() => process.exit(0));
+    setTimeout(() => process.exit(1), 3000);
+  };
+  process.on('SIGTERM', () => shutdown('SIGTERM'));
+  process.on('SIGINT',  () => shutdown('SIGINT'));
+}
 
-
+startServer();
 
 process.on('unhandledRejection', (err) => {
-
   console.error('Unhandled Rejection:', err.message);
-
   if (isProd) process.exit(1);
-
 });

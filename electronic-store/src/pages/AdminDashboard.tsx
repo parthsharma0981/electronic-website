@@ -13,28 +13,40 @@ const glass = { background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(25
 export function AdminDashboard() {
   const { user, isAdmin } = useAuth();
   const { products, addProduct, deleteProduct, totalProducts, bestSellers, lowStock, categoryBreakdown } = useProducts();
-  const { orders } = useOrders();
+  const { orders, allOrders } = useOrders();
   const [showAddForm, setShowAddForm] = useState(false);
   const [activeTab, setActiveTab] = useState('overview');
   const [newProduct, setNewProduct] = useState({ name: '', price: '', category: 'Computing', description: '', stock: '50', imageUrl: '' });
+  const [formSpecs, setFormSpecs] = useState([{ key: '', value: '' }]);
 
   // Redirect non-admin users
   if (!user || !isAdmin) {
     return <Navigate to="/login" replace />;
   }
 
+  // Use allOrders for admin dashboard stats
+  const dashboardOrders = allOrders.length > 0 ? allOrders : orders;
   const s = ADMIN_STATS;
-  const recentOrders = orders.slice(0, 5);
-  const totalRevenue = orders.reduce((sum: number, o: any) => sum + (o.totalPrice || 0), 0) || s.totalRevenue;
+  const recentOrders = dashboardOrders.slice(0, 5);
+  const totalRevenue = dashboardOrders.reduce((sum: number, o: any) => sum + (o.totalAmount || o.totalPrice || 0), 0) || s.totalRevenue;
 
   const handleAddProduct = () => {
     if (!newProduct.name || !newProduct.price) {
       toast.error('Name and price are required');
       return;
     }
-    addProduct(newProduct);
+
+    const specsObj: any = {};
+    formSpecs.forEach(s => {
+      if (s.key.trim() && s.value.trim()) {
+        specsObj[s.key.trim()] = s.value.trim();
+      }
+    });
+
+    addProduct({ ...newProduct, specs: specsObj });
     toast.success(`${newProduct.name} added to store! 🎉`);
     setNewProduct({ name: '', price: '', category: 'Computing', description: '', stock: '50', imageUrl: '' });
+    setFormSpecs([{ key: '', value: '' }]);
     setShowAddForm(false);
   };
 
@@ -80,7 +92,7 @@ export function AdminDashboard() {
           {[
             { icon: <Users size={20} />, label: 'Total Users', value: s.totalUsers.toLocaleString(), color: '#60a5fa', change: '+12.5%' },
             { icon: <DollarSign size={20} />, label: 'Total Revenue', value: `$${totalRevenue.toLocaleString()}`, color: '#22c55e', change: '+8.2%' },
-            { icon: <ShoppingBag size={20} />, label: 'Total Orders', value: (orders.length || s.totalOrders).toLocaleString(), color: '#a78bfa', change: '+15.3%' },
+            { icon: <ShoppingBag size={20} />, label: 'Total Orders', value: (dashboardOrders.length || s.totalOrders).toLocaleString(), color: '#a78bfa', change: '+15.3%' },
             { icon: <Package size={20} />, label: 'Total Products', value: totalProducts, color: '#f59e0b', change: '+3' },
             { icon: <Award size={20} />, label: 'Best Rating', value: '4.9⭐', color: '#ec4899', change: 'Quantum Phone' },
             { icon: <AlertTriangle size={20} />, label: 'Low Stock', value: lowStock.length, color: lowStock.length > 3 ? '#ef4444' : '#22c55e', change: lowStock.length > 3 ? 'Needs attention' : 'Healthy' },
@@ -237,7 +249,7 @@ export function AdminDashboard() {
                     background: order.status === 'delivered' ? 'rgba(34,197,94,0.15)' : order.status === 'shipped' ? 'rgba(96,165,250,0.15)' : 'rgba(245,158,11,0.15)',
                     color: order.status === 'delivered' ? '#22c55e' : order.status === 'shipped' ? '#60a5fa' : '#f59e0b'
                   }}>{order.status}</span>
-                  <span style={{ fontWeight: 700 }}>${order.totalPrice}</span>
+                  <span style={{ fontWeight: 700 }}>${order.totalAmount || order.totalPrice}</span>
                 </div>
               ))
             )}
@@ -284,14 +296,20 @@ export function AdminDashboard() {
           {showAddForm && (
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
               style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999 }}
-              onClick={(e) => e.target === e.currentTarget && setShowAddForm(false)}>
+              onClick={(e) => {
+                if (e.target === e.currentTarget) {
+                  setShowAddForm(false);
+                  setFormSpecs([{ key: '', value: '' }]);
+                }
+              }}>
               <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }}
                 style={{ width: '100%', maxWidth: '550px', ...glass, padding: '2rem', position: 'relative' }}>
-                <button onClick={() => setShowAddForm(false)} style={{ position: 'absolute', top: '1rem', right: '1rem', background: 'none', border: 'none', color: '#6b7280', cursor: 'pointer' }}>
+                <button onClick={() => { setShowAddForm(false); setFormSpecs([{ key: '', value: '' }]); }} style={{ position: 'absolute', top: '1rem', right: '1rem', background: 'none', border: 'none', color: '#6b7280', cursor: 'pointer' }}>
                   <X size={20} />
                 </button>
                 <h2 style={{ fontSize: '1.5rem', fontWeight: 700, marginBottom: '1.5rem' }}>Add New Product</h2>
-
+                
+                <div style={{ maxHeight: '60vh', overflowY: 'auto', paddingRight: '0.5rem', marginBottom: '1.5rem' }}>
                 {[
                   { key: 'name', label: 'Product Name', placeholder: 'e.g. ProBook Ultra 16"' },
                   { key: 'price', label: 'Price ($)', placeholder: '999', type: 'number' },
@@ -307,6 +325,43 @@ export function AdminDashboard() {
                   </div>
                 ))}
 
+                {/* Specifications Builder */}
+                <div style={{ marginBottom: '1.5rem', background: 'rgba(255,255,255,0.02)', padding: '1rem', borderRadius: '0.75rem', border: '1px dashed rgba(255,255,255,0.1)' }}>
+                  <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: '#9ca3af', marginBottom: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Specifications (Optional)</label>
+                  {formSpecs.map((spec, i) => (
+                    <div key={i} style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.5rem', alignItems: 'center' }}>
+                      <input value={spec.key} onChange={(e) => {
+                          const newSpecs = [...formSpecs];
+                          newSpecs[i].key = e.target.value;
+                          setFormSpecs(newSpecs);
+                        }}
+                        type="text" placeholder="Key (e.g. RAM)"
+                        style={{ flex: 1, padding: '0.6rem', borderRadius: '0.4rem', background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.1)', color: '#fff', fontSize: '0.85rem', outline: 'none' }} />
+                      <input value={spec.value} onChange={(e) => {
+                          const newSpecs = [...formSpecs];
+                          newSpecs[i].value = e.target.value;
+                          setFormSpecs(newSpecs);
+                        }}
+                        type="text" placeholder="Value (e.g. 16GB)"
+                        style={{ flex: 1, padding: '0.6rem', borderRadius: '0.4rem', background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.1)', color: '#fff', fontSize: '0.85rem', outline: 'none' }} />
+                      <button onClick={() => {
+                          if (formSpecs.length > 1) {
+                            setFormSpecs(formSpecs.filter((_, idx) => idx !== i));
+                          } else {
+                            setFormSpecs([{ key: '', value: '' }]); // clear if last
+                          }
+                        }}
+                        style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', padding: '0.2rem' }}>
+                        <X size={16} />
+                      </button>
+                    </div>
+                  ))}
+                  <button onClick={() => setFormSpecs([...formSpecs, { key: '', value: '' }])}
+                    style={{ background: 'rgba(96,165,250,0.1)', color: '#60a5fa', border: '1px dashed rgba(96,165,250,0.3)', padding: '0.4rem 0.75rem', borderRadius: '0.4rem', fontSize: '0.75rem', fontWeight: 600, cursor: 'pointer', marginTop: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                    <Plus size={14} /> Add Spec Row
+                  </button>
+                </div>
+
                 {/* Category Select */}
                 <div style={{ marginBottom: '1.5rem' }}>
                   <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: '#9ca3af', marginBottom: '0.35rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Category</label>
@@ -314,6 +369,7 @@ export function AdminDashboard() {
                     style={{ width: '100%', padding: '0.75rem', borderRadius: '0.5rem', background: 'rgba(0,0,0,0.5)', border: '1px solid rgba(255,255,255,0.1)', color: '#fff', fontSize: '0.9rem', outline: 'none' }}>
                     {CATEGORIES.map(c => <option key={c.id} value={c.name}>{c.name}</option>)}
                   </select>
+                </div>
                 </div>
 
                 <button onClick={handleAddProduct}

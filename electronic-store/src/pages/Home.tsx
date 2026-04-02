@@ -2,15 +2,15 @@ import { Link } from 'react-router-dom';
 import { motion, useScroll, useTransform, useSpring } from 'framer-motion';
 import { useProducts } from '../context/ProductContext';
 import { ProductCard3D } from '../components/ProductGrid';
-import { ArrowRight, Truck, Shield, RotateCcw, Headphones } from 'lucide-react';
+import { ArrowRight, Truck, Shield, RotateCcw, Headphones, Sparkles } from 'lucide-react';
 
 const CATEGORIES = [
-  { id: 'smartphones', name: 'Mobiles', label: 'Next-gen devices', icon: '📱' },
-  { id: 'laptops', name: 'Laptops', label: 'Pro performance', icon: '💻' },
-  { id: 'tablets', name: 'Tablets', label: 'Versatile screens', icon: '📱' },
-  { id: 'audio', name: 'Audio', label: 'Immersive sound', icon: '🎧' },
-  { id: 'wearables', name: 'Wearables', label: 'Fit and focused', icon: '⌚' },
-  { id: 'accessories', name: 'Extras', label: 'Complete setup', icon: '🔌' },
+  { id: 'Computing', name: 'Computing', label: 'Laptops & Desktops', icon: '💻' },
+  { id: 'Mobile', name: 'Mobile', label: 'Smartphones & Tablets', icon: '📱' },
+  { id: 'Audio', name: 'Audio', label: 'Headphones & Speakers', icon: '🎧' },
+  { id: 'Wearable', name: 'Wearable', label: 'Smartwatches & Bands', icon: '⌚' },
+  { id: 'Gaming', name: 'Gaming', label: 'Consoles & Accessories', icon: '🎮' },
+  { id: 'Accessories', name: 'Accessories', label: 'Cables, Cases & More', icon: '🔌' },
 ];
 
 export function Home() {
@@ -29,20 +29,30 @@ export function Home() {
     <div className="bg-bg-deep">
       {/* ══ HERO ══ */}
       <section className="relative overflow-hidden section-padding flex flex-col items-center justify-center text-center min-h-screen">
-        <motion.div style={{ position: 'absolute', top: '15%', left: '10%', width: '400px', height: '400px', background: 'radial-gradient(circle, var(--primary-glow) 0%, transparent 70%)', filter: 'blur(40px)', y: shapesY1, zIndex: 0 }} />
-        <motion.div style={{ position: 'absolute', bottom: '15%', right: '10%', width: '500px', height: '500px', background: 'radial-gradient(circle, rgba(244,114,182,0.1) 0%, transparent 70%)', filter: 'blur(40px)', y: shapesY2, zIndex: 0 }} />
+        {/* Ambient glow orbs */}
+        <motion.div style={{ position: 'absolute', top: '10%', left: '5%', width: '500px', height: '500px', background: 'radial-gradient(circle, rgba(var(--primary-rgb), 0.12) 0%, transparent 70%)', filter: 'blur(60px)', y: shapesY1, zIndex: 0 }} />
+        <motion.div style={{ position: 'absolute', bottom: '10%', right: '5%', width: '600px', height: '600px', background: 'radial-gradient(circle, rgba(var(--accent-rgb), 0.08) 0%, transparent 70%)', filter: 'blur(60px)', y: shapesY2, zIndex: 0 }} />
+        <motion.div style={{ position: 'absolute', top: '50%', left: '50%', width: '300px', height: '300px', background: 'radial-gradient(circle, rgba(var(--primary-rgb), 0.06) 0%, transparent 70%)', filter: 'blur(40px)', transform: 'translate(-50%, -50%)', zIndex: 0 }} />
 
         <div className="container relative z-10 flex flex-col items-center">
           <motion.div 
             initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 1 }}
-            className="flex items-center gap-3 px-5 py-2 rounded-full glass-card border-white/10 mb-8"
+            style={{
+              display: 'flex', alignItems: 'center', gap: '0.75rem', 
+              padding: '0.5rem 1.25rem', borderRadius: '9999px',
+              background: 'rgba(var(--primary-rgb), 0.06)',
+              border: '1px solid rgba(var(--primary-rgb), 0.12)',
+              marginBottom: '2.5rem',
+            }}
           >
-            <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-            <span className="text-[10px] font-bold tracking-[0.3em] uppercase text-text-secondary">Innovation Unveiled 2026</span>
+            <Sparkles size={12} style={{ color: 'var(--primary)' }} />
+            <span style={{ fontSize: '0.625rem', fontWeight: 700, letterSpacing: '0.3em', textTransform: 'uppercase', color: 'var(--primary)' }}>Innovation Unveiled 2026</span>
           </motion.div>
 
-          <motion.h1 style={{ y: heroY, opacity: heroOpacity }} className="hero-title text-gradient font-outfit leading-tight">
-            Future Built<br />For Your <span className="text-primary italic">Life</span>
+          <motion.h1 style={{ y: heroY, opacity: heroOpacity }} className="hero-title font-outfit leading-tight">
+            <span className="text-gradient">Future Built</span><br />
+            <span className="text-gradient">For Your </span>
+            <span className="gradient-text" style={{ fontStyle: 'italic' }}>Life</span>
           </motion.h1>
 
           <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.5 }} className="hero-subtitle mb-12">
@@ -50,10 +60,10 @@ export function Home() {
           </motion.p>
 
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.7 }} className="flex gap-4 flex-wrap justify-center">
-            <Link to="/products" className="btn-premium px-10 py-5 text-lg">
+            <Link to="/products" className="btn-glow" style={{ padding: '1.25rem 2.5rem', borderRadius: '9999px', fontSize: '1.1rem' }}>
               Explore Now <ArrowRight size={20} />
             </Link>
-            <Link to="/sell" className="btn-premium px-10 py-5 text-lg border-white/5 bg-white/5 hover:bg-white/10">
+            <Link to="/sell" className="btn-premium px-10 py-5 text-lg">
               Start Selling
             </Link>
           </motion.div>
@@ -61,11 +71,13 @@ export function Home() {
       </section>
 
       {/* ══ CATEGORIES ══ */}
-      <section className="section-padding bg-bg-surface">
+      <section style={{ padding: '6rem 1.5rem', background: 'var(--bg-surface)', position: 'relative' }}>
+        {/* Subtle gradient line */}
+        <div style={{ position: 'absolute', top: 0, left: '10%', right: '10%', height: '1px', background: 'linear-gradient(90deg, transparent, rgba(var(--primary-rgb), 0.15), transparent)' }} />
         <div className="container">
           <div className="text-center mb-16">
-            <p className="text-[10px] font-bold tracking-[0.3em] uppercase text-text-muted mb-4">Curated Selections</p>
-            <h2 className="text-5xl font-extrabold font-outfit">Shop by Category</h2>
+            <p style={{ fontSize: '0.625rem', fontWeight: 700, letterSpacing: '0.3em', textTransform: 'uppercase', color: 'var(--primary)', marginBottom: '1rem' }}>Curated Selections</p>
+            <h2 className="text-5xl font-extrabold font-outfit">Shop by <span className="gradient-text">Category</span></h2>
           </div>
           <div className="grid grid-cols-2 lg:grid-cols-6 gap-6">
             {CATEGORIES.map((cat, i) => (
@@ -73,10 +85,11 @@ export function Home() {
                 <motion.div
                   initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: i * 0.05 }}
                   className="glass-card aspect-square flex flex-col items-center justify-center group"
+                  style={{ textAlign: 'center' }}
                 >
-                  <span className="text-4xl mb-4 group-hover:scale-110 transition-transform">{cat.icon}</span>
-                  <h3 className="text-sm font-bold tracking-tight">{cat.name}</h3>
-                  <p className="text-[10px] text-text-muted mt-1 uppercase tracking-widest">{cat.label}</p>
+                  <span style={{ fontSize: '2.5rem', marginBottom: '1rem', transition: 'transform 0.3s ease' }} className="group-hover:scale-110">{cat.icon}</span>
+                  <h3 style={{ fontSize: '0.875rem', fontWeight: 700, letterSpacing: '-0.01em', color: 'var(--foreground)' }}>{cat.name}</h3>
+                  <p style={{ fontSize: '0.6rem', color: 'var(--text-muted)', marginTop: '0.25rem', textTransform: 'uppercase', letterSpacing: '0.1em' }}>{cat.label}</p>
                 </motion.div>
               </Link>
             ))}
@@ -88,8 +101,8 @@ export function Home() {
       <div className="container section-padding">
         <div className="flex justify-between items-end mb-16 px-4">
           <div>
-            <p className="text-[10px] font-bold tracking-[0.3em] uppercase text-text-muted mb-4">Global Trending</p>
-            <h2 className="text-6xl font-black font-outfit">Top Sellers</h2>
+            <p style={{ fontSize: '0.625rem', fontWeight: 700, letterSpacing: '0.3em', textTransform: 'uppercase', color: 'var(--primary)', marginBottom: '1rem' }}>Global Trending</p>
+            <h2 className="text-6xl font-black font-outfit">Top <span className="gradient-text">Sellers</span></h2>
           </div>
           <Link to="/products" className="nav-link flex items-center gap-2">View All <ArrowRight size={14} /></Link>
         </div>
@@ -101,7 +114,7 @@ export function Home() {
       </div>
 
       {/* ══ VALUE PROPS ══ */}
-      <section className="section-padding bg-bg-elevated border-y border-white/5">
+      <section style={{ padding: '6rem 1.5rem', background: 'var(--bg-elevated)', borderTop: '1px solid rgba(var(--primary-rgb), 0.06)', borderBottom: '1px solid rgba(var(--primary-rgb), 0.06)', position: 'relative' }}>
         <div className="container">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
             {[
@@ -110,11 +123,16 @@ export function Home() {
               { icon: <RotateCcw size={24} />, title: 'Circle Returns', desc: 'Hassle-free 30-day window' },
               { icon: <Headphones size={24} />, title: 'Expert Access', desc: '24/7 dedicated support' },
             ].map(p => (
-              <div key={p.title} className="p-8 glass-card border-white/5 text-center">
-                <div className="text-primary mb-6 flex justify-center">{p.icon}</div>
-                <h4 className="text-xs font-black uppercase tracking-widest mb-2">{p.title}</h4>
-                <p className="text-xs text-text-muted">{p.desc}</p>
-              </div>
+              <motion.div
+                key={p.title}
+                whileHover={{ y: -4 }}
+                className="glass-card"
+                style={{ textAlign: 'center', padding: '2rem' }}
+              >
+                <div style={{ color: 'var(--primary)', marginBottom: '1.25rem', display: 'flex', justifyContent: 'center' }}>{p.icon}</div>
+                <h4 style={{ fontSize: '0.7rem', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.15em', marginBottom: '0.5rem', color: 'var(--foreground)' }}>{p.title}</h4>
+                <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>{p.desc}</p>
+              </motion.div>
             ))}
           </div>
         </div>

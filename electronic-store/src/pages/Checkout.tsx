@@ -4,112 +4,180 @@ import { useCart } from '../context/CartContext';
 import { useOrders } from '../context/OrderContext';
 import { useProducts } from '../context/ProductContext';
 import { useNavigate } from 'react-router-dom';
-import { CreditCard, MapPin, Check } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
+import { CreditCard, MapPin, Check, ArrowRight, ShoppingBag } from 'lucide-react';
 import toast from 'react-hot-toast';
-
-const glass = { background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', backdropFilter: 'blur(40px)', borderRadius: '1.5rem', padding: '2rem' };
 
 export function Checkout() {
   const { cartItems, totalPrice, clearCart } = useCart();
   const { createOrder } = useOrders();
   const { decreaseStock } = useProducts();
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [step, setStep] = useState(1);
-  const [shipping, setShipping] = useState({ name: '', address: '', city: '', zip: '', phone: '' });
+  const [shipping, setShipping] = useState({ 
+    name: user?.name || '', 
+    address: user?.address?.street || typeof user?.address === 'string' ? user?.address : '', 
+    city: user?.address?.city || '', 
+    zip: user?.address?.pincode || '', 
+    phone: user?.phone || '' 
+  });
   const [payment, setPayment] = useState('card');
 
-  const handlePlaceOrder = () => {
-    const order = createOrder(cartItems, shipping, payment, totalPrice);
-    decreaseStock(cartItems);
-    clearCart();
-    toast.success('Order placed successfully! 🎉');
-    navigate(`/track/${order._id}`);
+  const handlePlaceOrder = async () => {
+    try {
+      const order = await createOrder(cartItems, shipping, payment, totalPrice);
+      decreaseStock(cartItems);
+      clearCart();
+      toast.success('Order placed successfully! 🎉');
+      navigate(`/track/${order._id}`);
+    } catch (err: any) {
+      console.error('Order placement failed:', err);
+      toast.error(err?.response?.data?.message || 'Failed to place order. Please try again.');
+    }
   };
 
   if (!cartItems || cartItems.length === 0) {
     return (
       <div style={{ minHeight: '80vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', paddingTop: '8rem', textAlign: 'center' }}>
-        <h2 style={{ fontSize: '2rem', fontWeight: 700, marginBottom: '1rem' }}>Your bag is empty</h2>
-        <p style={{ color: '#6b7280', marginBottom: '2rem' }}>Add items to your bag before checkout.</p>
+        <div style={{ width: 80, height: 80, borderRadius: '50%', background: 'rgba(var(--primary-rgb), 0.08)', border: '1px solid rgba(var(--primary-rgb), 0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '1.5rem' }}>
+          <ShoppingBag size={32} style={{ color: 'var(--primary)' }} />
+        </div>
+        <h2 style={{ fontSize: '2rem', fontWeight: 700, marginBottom: '0.75rem' }}>Your bag is empty</h2>
+        <p style={{ color: 'var(--text-muted)', marginBottom: '2rem' }}>Add items to your bag before checkout.</p>
       </div>
     );
   }
 
+  const inputStyle = {
+    width: '100%', padding: '0.9rem 1rem', borderRadius: '0.75rem',
+    background: 'rgba(var(--primary-rgb), 0.03)', border: '1px solid rgba(var(--primary-rgb), 0.1)',
+    color: 'var(--foreground)', fontSize: '1rem', outline: 'none', boxSizing: 'border-box' as const,
+    transition: 'border-color 0.3s, box-shadow 0.3s',
+  };
+
   return (
-    <div style={{ maxWidth: '900px', margin: '0 auto', padding: '8rem 1.5rem 4rem' }}>
+    <div style={{ maxWidth: '900px', margin: '0 auto', padding: '6rem 1.5rem 4rem', position: 'relative' }}>
+      {/* Ambient glow */}
+      <div style={{ position: 'fixed', width: '500px', height: '500px', borderRadius: '50%', background: 'radial-gradient(circle, rgba(var(--primary-rgb), 0.04) 0%, transparent 70%)', top: '15%', right: '-10%', filter: 'blur(80px)', pointerEvents: 'none', zIndex: 0 }} />
+
       {/* Progress Steps */}
-      <div style={{ display: 'flex', justifyContent: 'center', gap: '1rem', marginBottom: '3rem' }}>
-        {[{ n: 1, label: 'Shipping', icon: <MapPin size={16} /> }, { n: 2, label: 'Payment', icon: <CreditCard size={16} /> }, { n: 3, label: 'Review', icon: <Check size={16} /> }].map(s => (
-          <div key={s.n} onClick={() => s.n < step && setStep(s.n)} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.75rem 1.5rem', borderRadius: '9999px', cursor: s.n <= step ? 'pointer' : 'default', background: step >= s.n ? 'rgba(255,255,255,0.1)' : 'rgba(255,255,255,0.02)', border: `1px solid ${step >= s.n ? 'rgba(255,255,255,0.2)' : 'rgba(255,255,255,0.06)'}`, transition: 'all 0.3s', color: step >= s.n ? '#fff' : '#6b7280', fontWeight: 600, fontSize: '0.85rem' }}>
-            {s.icon} {s.label}
+      <div style={{ display: 'flex', justifyContent: 'center', gap: '0.75rem', marginBottom: '3rem', position: 'relative', zIndex: 1 }}>
+        {[{ n: 1, label: 'Shipping', icon: <MapPin size={16} /> }, { n: 2, label: 'Payment', icon: <CreditCard size={16} /> }, { n: 3, label: 'Review', icon: <Check size={16} /> }].map((s, i) => (
+          <div key={s.n} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <div onClick={() => s.n < step && setStep(s.n)} style={{
+              display: 'flex', alignItems: 'center', gap: '0.5rem',
+              padding: '0.75rem 1.5rem', borderRadius: '9999px',
+              cursor: s.n <= step ? 'pointer' : 'default',
+              background: step >= s.n ? 'rgba(var(--primary-rgb), 0.1)' : 'rgba(255,255,255,0.02)',
+              border: `1px solid ${step >= s.n ? 'rgba(var(--primary-rgb), 0.25)' : 'rgba(255,255,255,0.06)'}`,
+              transition: 'all 0.3s',
+              color: step >= s.n ? 'var(--primary)' : 'var(--text-muted)',
+              fontWeight: 700, fontSize: '0.8rem',
+              boxShadow: step >= s.n ? '0 0 20px rgba(var(--primary-rgb), 0.05)' : 'none',
+            }}>
+              {s.icon} {s.label}
+            </div>
+            {i < 2 && <div style={{ width: '2rem', height: '1px', background: step > s.n ? 'rgba(var(--primary-rgb), 0.3)' : 'rgba(255,255,255,0.06)' }} />}
           </div>
         ))}
       </div>
 
-      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} key={step}>
+      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} key={step} style={{ position: 'relative', zIndex: 1 }}>
         {step === 1 && (
-          <div style={glass}>
-            <h2 style={{ fontSize: '1.75rem', fontWeight: 700, marginBottom: '2rem' }}>Shipping Address</h2>
+          <div style={{
+            background: 'var(--bg-card)', border: '1px solid rgba(var(--primary-rgb), 0.1)',
+            backdropFilter: 'blur(40px)', borderRadius: '1.5rem', padding: '2.5rem',
+            position: 'relative', overflow: 'hidden',
+          }}>
+            <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '2px', background: 'var(--gradient-primary)' }} />
+            <h2 style={{ fontSize: '1.75rem', fontWeight: 700, marginBottom: '2rem', fontFamily: '"Outfit", sans-serif' }}>
+              Shipping <span className="gradient-text">Address</span>
+            </h2>
             {['name', 'address', 'city', 'zip', 'phone'].map(field => (
               <div key={field} style={{ marginBottom: '1.25rem' }}>
-                <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 500, color: '#9ca3af', marginBottom: '0.5rem', textTransform: 'capitalize' }}>{field}</label>
+                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '0.5rem', textTransform: 'capitalize', letterSpacing: '0.05em' }}>{field}</label>
                 <input value={(shipping as any)[field]} onChange={e => setShipping({ ...shipping, [field]: e.target.value })}
-                  style={{ width: '100%', padding: '0.9rem 1rem', borderRadius: '0.75rem', background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.1)', color: '#fff', fontSize: '1rem', outline: 'none', boxSizing: 'border-box' }}
-                  placeholder={`Enter your ${field}`} />
+                  style={inputStyle}
+                  placeholder={`Enter your ${field}`}
+                  onFocus={e => { e.target.style.borderColor = 'rgba(var(--primary-rgb), 0.4)'; e.target.style.boxShadow = '0 0 20px rgba(var(--primary-rgb), 0.06)'; }}
+                  onBlur={e => { e.target.style.borderColor = 'rgba(var(--primary-rgb), 0.1)'; e.target.style.boxShadow = 'none'; }}
+                />
               </div>
             ))}
-            <button onClick={() => setStep(2)} style={{ width: '100%', padding: '1rem', borderRadius: '0.75rem', background: '#fff', color: '#000', fontWeight: 700, fontSize: '1rem', border: 'none', cursor: 'pointer', marginTop: '1rem' }}>
-              Continue to Payment
+            <button onClick={() => setStep(2)} className="btn-glow" style={{ width: '100%', padding: '1rem', borderRadius: '0.75rem', marginTop: '1rem', fontSize: '1rem' }}>
+              Continue to Payment <ArrowRight size={18} />
             </button>
           </div>
         )}
 
         {step === 2 && (
-          <div style={glass}>
-            <h2 style={{ fontSize: '1.75rem', fontWeight: 700, marginBottom: '2rem' }}>Payment Method</h2>
+          <div style={{
+            background: 'var(--bg-card)', border: '1px solid rgba(var(--primary-rgb), 0.1)',
+            backdropFilter: 'blur(40px)', borderRadius: '1.5rem', padding: '2.5rem',
+            position: 'relative', overflow: 'hidden',
+          }}>
+            <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '2px', background: 'var(--gradient-primary)' }} />
+            <h2 style={{ fontSize: '1.75rem', fontWeight: 700, marginBottom: '2rem', fontFamily: '"Outfit", sans-serif' }}>
+              Payment <span className="gradient-text">Method</span>
+            </h2>
             {[{ id: 'card', label: 'Credit / Debit Card', icon: '💳' }, { id: 'upi', label: 'UPI / Net Banking', icon: '🏦' }, { id: 'cod', label: 'Cash on Delivery', icon: '💵' }].map(pm => (
               <div key={pm.id} onClick={() => setPayment(pm.id)}
-                style={{ display: 'flex', alignItems: 'center', gap: '1rem', padding: '1.25rem', borderRadius: '1rem', cursor: 'pointer', marginBottom: '0.75rem', background: payment === pm.id ? 'rgba(255,255,255,0.08)' : 'transparent', border: `1px solid ${payment === pm.id ? 'rgba(255,255,255,0.2)' : 'rgba(255,255,255,0.06)'}`, transition: 'all 0.3s' }}>
+                style={{
+                  display: 'flex', alignItems: 'center', gap: '1rem',
+                  padding: '1.25rem', borderRadius: '1rem', cursor: 'pointer', marginBottom: '0.75rem',
+                  background: payment === pm.id ? 'rgba(var(--primary-rgb), 0.06)' : 'transparent',
+                  border: `1px solid ${payment === pm.id ? 'rgba(var(--primary-rgb), 0.25)' : 'rgba(255,255,255,0.06)'}`,
+                  transition: 'all 0.3s',
+                  boxShadow: payment === pm.id ? '0 0 20px rgba(var(--primary-rgb), 0.03)' : 'none',
+                }}>
                 <span style={{ fontSize: '1.5rem' }}>{pm.icon}</span>
-                <span style={{ fontWeight: 600, flex: 1 }}>{pm.label}</span>
-                <div style={{ width: 20, height: 20, borderRadius: '50%', border: `2px solid ${payment === pm.id ? '#fff' : '#4b5563'}`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  {payment === pm.id && <div style={{ width: 10, height: 10, borderRadius: '50%', background: '#fff' }} />}
+                <span style={{ fontWeight: 600, flex: 1, color: payment === pm.id ? 'var(--foreground)' : 'var(--text-secondary)' }}>{pm.label}</span>
+                <div style={{ width: 20, height: 20, borderRadius: '50%', border: `2px solid ${payment === pm.id ? 'var(--primary)' : 'var(--text-muted)'}`, display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.3s' }}>
+                  {payment === pm.id && <div style={{ width: 10, height: 10, borderRadius: '50%', background: 'var(--primary)' }} />}
                 </div>
               </div>
             ))}
-            <button onClick={() => setStep(3)} style={{ width: '100%', padding: '1rem', borderRadius: '0.75rem', background: '#fff', color: '#000', fontWeight: 700, fontSize: '1rem', border: 'none', cursor: 'pointer', marginTop: '1rem' }}>
-              Review Order
+            <button onClick={() => setStep(3)} className="btn-glow" style={{ width: '100%', padding: '1rem', borderRadius: '0.75rem', marginTop: '1rem', fontSize: '1rem' }}>
+              Review Order <ArrowRight size={18} />
             </button>
           </div>
         )}
 
         {step === 3 && (
-          <div style={glass}>
-            <h2 style={{ fontSize: '1.75rem', fontWeight: 700, marginBottom: '2rem' }}>Order Summary</h2>
+          <div style={{
+            background: 'var(--bg-card)', border: '1px solid rgba(var(--primary-rgb), 0.1)',
+            backdropFilter: 'blur(40px)', borderRadius: '1.5rem', padding: '2.5rem',
+            position: 'relative', overflow: 'hidden',
+          }}>
+            <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '2px', background: 'var(--gradient-primary)' }} />
+            <h2 style={{ fontSize: '1.75rem', fontWeight: 700, marginBottom: '2rem', fontFamily: '"Outfit", sans-serif' }}>
+              Order <span className="gradient-text">Summary</span>
+            </h2>
             {cartItems.map((item: any) => (
-              <div key={item._id} style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1rem', paddingBottom: '1rem', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
-                <img src={item.images?.[0]?.url || item.image} alt={item.name} style={{ width: 60, height: 60, borderRadius: '0.75rem', objectFit: 'cover' }} />
+              <div key={item._id} style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1rem', paddingBottom: '1rem', borderBottom: '1px solid rgba(var(--primary-rgb), 0.06)' }}>
+                <img src={item.images?.[0]?.url || item.image} alt={item.name} style={{ width: 60, height: 60, borderRadius: '0.75rem', objectFit: 'cover', border: '1px solid rgba(var(--primary-rgb), 0.08)' }} />
                 <div style={{ flex: 1 }}>
                   <p style={{ fontWeight: 600, margin: 0 }}>{item.name}</p>
-                  <p style={{ color: '#6b7280', fontSize: '0.85rem', margin: 0 }}>Qty: {item.quantity}</p>
+                  <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', margin: 0 }}>Qty: {item.quantity}</p>
                 </div>
-                <span style={{ fontWeight: 700 }}>${(item.price * item.quantity).toFixed(2)}</span>
+                <span style={{ fontWeight: 700, color: 'var(--foreground)' }}>${(item.price * item.quantity).toFixed(2)}</span>
               </div>
             ))}
 
             {/* Shipping Summary */}
             {shipping.name && (
-              <div style={{ padding: '1rem', borderRadius: '0.75rem', background: 'rgba(255,255,255,0.03)', marginBottom: '1rem' }}>
-                <p style={{ fontSize: '0.7rem', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: '#6b7280', marginBottom: '0.5rem' }}>Shipping To</p>
-                <p style={{ margin: 0, fontWeight: 500 }}>{shipping.name}, {shipping.address}, {shipping.city} - {shipping.zip}</p>
+              <div style={{ padding: '1rem', borderRadius: '0.75rem', background: 'rgba(var(--primary-rgb), 0.03)', border: '1px solid rgba(var(--primary-rgb), 0.08)', marginBottom: '1rem' }}>
+                <p style={{ fontSize: '0.7rem', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--primary)', marginBottom: '0.5rem' }}>Shipping To</p>
+                <p style={{ margin: 0, fontWeight: 500, color: 'var(--text-secondary)' }}>{shipping.name}, {shipping.address}, {shipping.city} - {shipping.zip}</p>
               </div>
             )}
 
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1.5rem 0', borderTop: '1px solid rgba(255,255,255,0.1)', marginTop: '1rem' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1.5rem 0', borderTop: '1px solid rgba(var(--primary-rgb), 0.1)', marginTop: '1rem' }}>
               <span style={{ fontSize: '1.25rem', fontWeight: 700 }}>Total</span>
-              <span style={{ fontSize: '2rem', fontWeight: 700 }}>${totalPrice.toFixed(2)}</span>
+              <span className="gradient-text" style={{ fontSize: '2rem', fontWeight: 900, fontFamily: '"Outfit", sans-serif' }}>${totalPrice.toFixed(2)}</span>
             </div>
-            <button onClick={handlePlaceOrder} style={{ width: '100%', padding: '1.25rem', borderRadius: '0.75rem', background: '#22c55e', color: '#fff', fontWeight: 700, fontSize: '1.1rem', border: 'none', cursor: 'pointer' }}>
+            <button onClick={handlePlaceOrder} className="btn-glow" style={{ width: '100%', padding: '1.25rem', borderRadius: '0.75rem', fontSize: '1.1rem', background: 'linear-gradient(135deg, #22c55e 0%, #16a34a 100%)', boxShadow: '0 4px 20px rgba(34,197,94,0.3)' }}>
               Place Order 🎉
             </button>
           </div>

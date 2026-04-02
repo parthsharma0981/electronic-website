@@ -1,17 +1,30 @@
 import asyncHandler from 'express-async-handler';
 import Product from '../models/Product.js';
-import cloudinary from '../config/cloudinary.js';
+
+// Helper to dynamically calculate badge if no manual override exists
+const computeBadge = (product) => {
+  if (product.badge && product.badge.trim() !== '') return product.badge;
+
+  const sales = product.salesCount || 0;
+  if (sales >= 5) return 'Best Seller';
+
+  if (product.originalPrice && product.originalPrice > product.price) return 'Sale';
+
+  const fourteenDaysAgo = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000);
+  if (new Date(product.createdAt) > fourteenDaysAgo) return 'New';
+
+  return null;
+};
 
 // @desc    Get all products with filters
 // @route   GET /api/products
 // @access  Public
 export const getProducts = asyncHandler(async (req, res) => {
-  const { category, gender, minPrice, maxPrice, sort, search, page = 1, limit = 12 } = req.query;
+  const { category, minPrice, maxPrice, sort, search, page = 1, limit = 50 } = req.query;
 
-  const query = { isAvailable: true };
+  const query = { isAvailable: { $ne: false } };
 
-  if (category) query.category = category;
-  if (gender) query.gender = gender;
+  if (category) query.category = { $regex: new RegExp(`^${category}$`, 'i') };
   if (minPrice || maxPrice) {
     query.price = {};
     if (minPrice) query.price.$gte = Number(minPrice);
@@ -22,6 +35,8 @@ export const getProducts = asyncHandler(async (req, res) => {
   const sortOptions = {
     'price-asc': { price: 1 },
     'price-desc': { price: -1 },
+    'lowToHigh': { price: 1 },
+    'highToLow': { price: -1 },
     newest: { createdAt: -1 },
     oldest: { createdAt: 1 },
   };
@@ -34,8 +49,14 @@ export const getProducts = asyncHandler(async (req, res) => {
     Product.countDocuments(query),
   ]);
 
+  const formattedProducts = products.map(p => {
+    const obj = p.toObject();
+    obj.badge = computeBadge(obj);
+    return obj;
+  });
+
   res.json({
-    products,
+    products: formattedProducts,
     page: Number(page),
     pages: Math.ceil(total / limit),
     total,
@@ -51,29 +72,39 @@ export const getProductById = asyncHandler(async (req, res) => {
     res.status(404);
     throw new Error('Product not found');
   }
-  res.json(product);
+  const obj = product.toObject();
+  obj.badge = computeBadge(obj);
+  res.json(obj);
 });
 
 // @desc    Create product
 // @route   POST /api/products
-// @access  Admin
+// @access  Admin or Seller
 export const createProduct = asyncHandler(async (req, res) => {
-  const { name, description, price, category, gender, stock, material, tags } = req.body;
+  const { name, description, price, originalPrice, category, badge, specs, stock, tags, images, imageUrl } = req.body;
 
-  const images = req.files
-    ? req.files.map((f) => ({ url: f.path, public_id: f.filename }))
-    : [];
+  // Support both multipart file uploads and JSON image URLs
+  let productImages = [];
+  if (req.files && req.files.length > 0) {
+    productImages = req.files.map((f) => ({ url: f.path, public_id: f.filename }));
+  } else if (images && Array.isArray(images)) {
+    productImages = images.map(img => typeof img === 'string' ? { url: img } : img);
+  } else if (imageUrl) {
+    productImages = [{ url: imageUrl }];
+  }
 
   const product = await Product.create({
     name,
     description,
-    price,
+    price: Number(price),
+    originalPrice: originalPrice ? Number(originalPrice) : undefined,
     category,
-    gender,
-    stock,
-    material,
-    tags: tags ? tags.split(',').map((t) => t.trim()) : [],
-    images,
+    badge,
+    specs: specs || {},
+    stock: stock ? Number(stock) : 10,
+    tags: tags ? (typeof tags === 'string' ? tags.split(',').map(t => t.trim()) : tags) : [],
+    images: productImages.length > 0 ? productImages : [{ url: 'https://images.unsplash.com/photo-1526738549149-8e07eca6c147?auto=format&fit=crop&q=80&w=600' }],
+    seller: req.user._id,
   });
 
   res.status(201).json(product);
@@ -81,7 +112,7 @@ export const createProduct = asyncHandler(async (req, res) => {
 
 // @desc    Update product
 // @route   PUT /api/products/:id
-// @access  Admin
+// @access  Admin or Seller
 export const updateProduct = asyncHandler(async (req, res) => {
   const product = await Product.findById(req.params.id);
   if (!product) {
@@ -89,20 +120,19 @@ export const updateProduct = asyncHandler(async (req, res) => {
     throw new Error('Product not found');
   }
 
-  const { name, description, price, category, gender, stock, material, tags, isAvailable } =
-    req.body;
+  const { name, description, price, originalPrice, category, badge, specs, stock, tags, isAvailable } = req.body;
 
   product.name = name || product.name;
   product.description = description || product.description;
-  product.price = price || product.price;
+  product.price = price !== undefined ? Number(price) : product.price;
+  product.originalPrice = originalPrice !== undefined ? Number(originalPrice) : product.originalPrice;
   product.category = category || product.category;
-  product.gender = gender || product.gender;
-  product.stock = stock !== undefined ? stock : product.stock;
-  product.material = material || product.material;
+  product.badge = badge !== undefined ? badge : product.badge;
+  product.specs = specs || product.specs;
+  product.stock = stock !== undefined ? Number(stock) : product.stock;
   product.isAvailable = isAvailable !== undefined ? isAvailable : product.isAvailable;
-  if (tags) product.tags = tags.split(',').map((t) => t.trim());
+  if (tags) product.tags = typeof tags === 'string' ? tags.split(',').map(t => t.trim()) : tags;
 
-  // Add new images if uploaded
   if (req.files && req.files.length > 0) {
     const newImages = req.files.map((f) => ({ url: f.path, public_id: f.filename }));
     product.images = [...product.images, ...newImages];
@@ -121,14 +151,6 @@ export const deleteProduct = asyncHandler(async (req, res) => {
     res.status(404);
     throw new Error('Product not found');
   }
-
-  // Delete images from Cloudinary
-  for (const img of product.images) {
-    if (img.public_id) {
-      await cloudinary.uploader.destroy(img.public_id);
-    }
-  }
-
   await product.deleteOne();
   res.json({ message: 'Product deleted successfully' });
 });
@@ -144,73 +166,26 @@ export const deleteProductImage = asyncHandler(async (req, res) => {
   }
 
   const publicId = decodeURIComponent(req.params.publicId);
-  await cloudinary.uploader.destroy(publicId);
   product.images = product.images.filter((img) => img.public_id !== publicId);
   await product.save();
 
   res.json({ message: 'Image deleted' });
 });
 
-// @desc    Get top selling products by actual order count
+// @desc    Get top selling products
 // @route   GET /api/products/top-sellers
 // @access  Public
 export const getTopSellers = asyncHandler(async (req, res) => {
-  const limit = Number(req.query.limit) || 6;
+  const limit = Number(req.query.limit) || 8;
 
-  // Aggregate from Orders — count how many times each product was ordered
-  // Only count Accepted, Shipped, Delivered orders (not Pending/Rejected)
-  const Order = (await import('../models/Order.js')).default;
+  // Real Top Sellers by salesCount
+  const products = await Product.find({ isAvailable: { $ne: false } })
+    .sort({ salesCount: -1, numReviews: -1, createdAt: -1 })
+    .limit(limit);
 
-  const topProductIds = await Order.aggregate([
-    // Only count successful orders
-    { $match: { status: { $in: ['Accepted', 'Shipped', 'Delivered', 'Pending'] } } },
-    // Unwind order items array
-    { $unwind: '$orderItems' },
-    // Group by product, sum quantities
-    {
-      $group: {
-        _id:           '$orderItems.product',
-        totalSold:     { $sum: '$orderItems.quantity' },
-        totalOrders:   { $sum: 1 },
-        totalRevenue:  { $sum: { $multiply: ['$orderItems.price', '$orderItems.quantity'] } },
-      },
-    },
-    // Sort by totalSold descending
-    { $sort: { totalSold: -1 } },
-    { $limit: limit },
-  ]);
-
-  if (topProductIds.length === 0) {
-    // No orders yet — fallback to newest products
-    const products = await Product.find({ isAvailable: true })
-      .sort({ createdAt: -1 })
-      .limit(limit);
-    return res.json(products.map(p => ({ ...p.toObject(), totalSold: 0, totalOrders: 0 })));
-  }
-
-  // Fetch full product details and attach sales data
-  const productMap = {};
-  topProductIds.forEach(item => {
-    productMap[item._id.toString()] = {
-      totalSold:    item.totalSold,
-      totalOrders:  item.totalOrders,
-      totalRevenue: item.totalRevenue,
-    };
-  });
-
-  const productIds = topProductIds.map(item => item._id);
-  const products   = await Product.find({ _id: { $in: productIds }, isAvailable: true });
-
-  // Sort products in same order as aggregation result
-  const sorted = productIds
-    .map(id => products.find(p => p._id.toString() === id.toString()))
-    .filter(Boolean)
-    .map(p => ({
-      ...p.toObject(),
-      totalSold:    productMap[p._id.toString()]?.totalSold    || 0,
-      totalOrders:  productMap[p._id.toString()]?.totalOrders  || 0,
-      totalRevenue: productMap[p._id.toString()]?.totalRevenue || 0,
-    }));
-
-  res.json(sorted);
+  res.json(products.map(p => {
+    const obj = p.toObject();
+    obj.badge = computeBadge(obj);
+    return { ...obj, totalSold: obj.salesCount || 0, totalOrders: obj.salesCount || 0 };
+  }));
 });
