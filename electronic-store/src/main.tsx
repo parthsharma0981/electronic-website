@@ -8,6 +8,9 @@ import { WishlistProvider } from './context/WishlistContext';
 import { OrderProvider } from './context/OrderContext';
 import { ProductProvider } from './context/ProductContext';
 import { ThemeProvider } from './context/ThemeContext';
+import { CompareProvider } from './context/CompareContext';
+import { RecentlyViewedProvider } from './context/RecentlyViewedContext';
+import { LanguageProvider } from './context/LanguageContext';
 import './index.css';
 import App from './App';
 import React from 'react';
@@ -44,23 +47,29 @@ createRoot(document.getElementById('root')!).render(
             <WishlistProvider>
               <OrderProvider>
                 <ThemeProvider>
-                  <ErrorBoundary>
-                    <App />
-                  </ErrorBoundary>
-                  <Toaster position="top-right"
-                    toastOptions={{
-                      duration: 4000,
-                      style: {
-                        background: 'var(--glass-bg)',
-                        color: 'var(--foreground)',
-                        border: '1px solid var(--glass-border)',
-                        borderRadius: '12px',
-                        boxShadow: 'var(--toast-shadow, 0 8px 32px rgba(0,0,0,0.5))',
-                        backdropFilter: 'blur(20px)',
-                        WebkitBackdropFilter: 'blur(20px)'
-                      }
-                    }} 
-                  />
+                  <CompareProvider>
+                    <RecentlyViewedProvider>
+                      <LanguageProvider>
+                        <ErrorBoundary>
+                          <App />
+                        </ErrorBoundary>
+                        <Toaster position="top-right"
+                          toastOptions={{
+                            duration: 4000,
+                            style: {
+                              background: 'var(--glass-bg)',
+                              color: 'var(--foreground)',
+                              border: '1px solid var(--glass-border)',
+                              borderRadius: '12px',
+                              boxShadow: 'var(--toast-shadow, 0 8px 32px rgba(0,0,0,0.5))',
+                              backdropFilter: 'blur(20px)',
+                              WebkitBackdropFilter: 'blur(20px)'
+                            }
+                          }} 
+                        />
+                      </LanguageProvider>
+                    </RecentlyViewedProvider>
+                  </CompareProvider>
                 </ThemeProvider>
               </OrderProvider>
             </WishlistProvider>
@@ -70,4 +79,5 @@ createRoot(document.getElementById('root')!).render(
     </BrowserRouter>
   </StrictMode>
 );
+
 

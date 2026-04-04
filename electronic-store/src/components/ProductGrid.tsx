@@ -4,10 +4,11 @@ import { useNavigate } from 'react-router-dom';
 import { productService } from '../services/productService.js';
 import { useCart } from '../context/CartContext';
 import { useWishlist } from '../context/WishlistContext';
+import { useCompare } from '../context/CompareContext';
 import { PRODUCTS as DEMO_PRODUCTS } from '../data/demoData';
 import { Product } from '../types';
 import { ProductSkeleton } from './Skeleton';
-import { Heart, ShoppingBag } from 'lucide-react';
+import { Heart, ShoppingBag, GitCompareArrows } from 'lucide-react';
 
 const FALLBACK_PRODUCTS = DEMO_PRODUCTS.slice(0, 4);
 
@@ -15,9 +16,11 @@ export function ProductCard3D({ product, index }: { product: Product, index: num
   const [isHovered, setIsHovered] = useState(false);
   const { addToCart } = useCart();
   const { isWishlisted, toggleWishlist } = useWishlist();
+  const { isInCompare, addToCompare, removeFromCompare } = useCompare();
   const navigate = useNavigate();
   const imageUrl = product.images && product.images.length > 0 ? product.images[0].url : (product as any).image;
   const wishlisted = isWishlisted(product._id);
+  const inCompare = isInCompare(product._id);
 
   return (
     <motion.div
@@ -41,18 +44,18 @@ export function ProductCard3D({ product, index }: { product: Product, index: num
         />
         <div style={{
           position: 'absolute', inset: 0, zIndex: 0,
-          background: `linear-gradient(to top, var(--bg-deep) 0%, rgba(5,5,8,0.4) 40%, transparent 100%)`,
+          background: `linear-gradient(to top, rgba(10,10,15,0.95) 0%, rgba(10,10,15,0.4) 50%, transparent 100%)`,
         }} />
       </div>
 
       <div className="relative z-10 flex flex-col gap-4">
         <div>
           <p style={{ color: 'var(--primary)', fontSize: '0.7rem', fontWeight: 700, letterSpacing: '0.15em', textTransform: 'uppercase', marginBottom: '0.5rem' }}>{product.category}</p>
-          <h3 className="text-2xl font-bold text-white mb-2 leading-tight font-outfit line-clamp-2">{product.name}</h3>
+          <h3 className="text-2xl font-bold mb-2 leading-tight font-outfit line-clamp-2" style={{ color: '#fff' }}>{product.name}</h3>
         </div>
 
         <div className="flex justify-between items-center mt-auto">
-          <span style={{ fontSize: '1.25rem', fontWeight: 600, color: 'rgba(255,255,255,0.9)' }}>
+          <span style={{ fontSize: '1.25rem', fontWeight: 600, color: 'rgba(255,255,255,0.95)' }}>
             ${product.price ? product.price.toLocaleString() : '0'}
           </span>
           
@@ -140,6 +143,38 @@ export function ProductCard3D({ product, index }: { product: Product, index: num
           {product.badge}
         </span>
       )}
+
+      {/* Compare Button */}
+      <motion.button
+        whileHover={{ scale: 1.15 }}
+        whileTap={{ scale: 0.9 }}
+        onClick={(e: React.MouseEvent) => { e.stopPropagation(); inCompare ? removeFromCompare(product._id) : addToCompare(product); }}
+        style={{
+          position: 'absolute',
+          top: '4.5rem',
+          left: '1.5rem',
+          zIndex: 20,
+          width: 40,
+          height: 40,
+          borderRadius: '50%',
+          background: inCompare ? 'rgba(96, 165, 250, 0.2)' : 'rgba(0,0,0,0.4)',
+          backdropFilter: 'blur(12px)',
+          border: inCompare ? '1px solid rgba(96, 165, 250, 0.4)' : '1px solid rgba(255,255,255,0.12)',
+          cursor: 'pointer',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          transition: 'all 0.3s ease',
+          boxShadow: '0 4px 15px rgba(0,0,0,0.3)',
+        }}
+        aria-label={inCompare ? 'Remove from compare' : 'Add to compare'}
+      >
+        <GitCompareArrows
+          size={16}
+          color={inCompare ? '#60a5fa' : '#fff'}
+          style={{ transition: 'all 0.3s ease' }}
+        />
+      </motion.button>
 
       {/* Hover glow effect */}
       {isHovered && (

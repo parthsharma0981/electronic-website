@@ -3,7 +3,7 @@ import asyncHandler from 'express-async-handler';
 import User from '../models/User.js';
 import generateToken from '../utils/generateToken.js';
 import { sendEmail } from '../utils/sendEmail.js';
-import { verifyEmailTpl, forgotPasswordTpl } from '../utils/emailTemplates.js';
+import { verifyEmailTpl, forgotPasswordTpl, welcomeEmailTpl } from '../utils/emailTemplates.js';
 
 // Temporary store for pending registrations (in-memory)
 // Key: email, Value: { name, email, hashedPassword, phone, otp, otpExpire }
@@ -110,6 +110,17 @@ export const verifyEmailAndRegister = asyncHandler(async (req, res) => {
   // Clear from pending store
   pendingRegistrations.delete(email);
 
+  // Send welcome email (fire-and-forget)
+  try {
+    await sendEmail({
+      to: email,
+      subject: 'Welcome to Electronic Store! 🎉',
+      html: welcomeEmailTpl(user.name),
+    });
+  } catch (err) {
+    console.error('Welcome email failed:', err.message);
+  }
+
   res.status(201).json({
     _id:             user._id,
     name:            user.name,
@@ -142,11 +153,17 @@ export const resendRegistrationOTP = asyncHandler(async (req, res) => {
   // Update pending store
   pendingRegistrations.set(email, { ...pending, otpHashed, otpExpire });
 
-  await sendEmail({
-    to:      email,
-    subject: 'Electronic Store — New OTP for Email Verification',
-    html:    verifyEmailTpl(pending.name, otp),
-  });
+  try {
+    await sendEmail({
+      to:      email,
+      subject: 'Electronic Store — New OTP for Email Verification',
+      html:    verifyEmailTpl(pending.name, otp),
+    });
+  } catch (err) {
+    console.error('Resend OTP email failed:', err.message);
+    res.status(500);
+    throw new Error('Failed to send OTP email. Please try again.');
+  }
 
   res.json({ message: 'New OTP sent to your email.' });
 });

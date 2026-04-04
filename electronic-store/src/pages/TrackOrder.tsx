@@ -17,14 +17,16 @@ export function TrackOrder() {
     return <div style={{ padding: '8rem 2rem', textAlign: 'center' }}>Order not found</div>;
   }
 
-  // Generate dynamic tracking steps if backend doesn't provide them
-  const trackingSteps = order.trackingSteps || [
+  const statusLower = (order.status || 'pending').toLowerCase();
+  const isRejected = statusLower === 'rejected';
+  
+  const trackingSteps = [
     { label: 'Order Placed', date: new Date(order.createdAt).toLocaleDateString(), done: true },
-    { label: 'Payment Confirmed', date: order.isPaid ? new Date(order.paidAt || order.createdAt).toLocaleDateString() : 'Pending', done: order.isPaid },
-    { label: 'Processing', date: 'In Progress', done: ['processing', 'shipped', 'delivered'].includes((order.status || '').toLowerCase()) },
-    { label: 'Shipped', date: order.status === 'shipped' || order.status === 'delivered' ? 'Completed' : 'Pending', done: ['shipped', 'delivered'].includes((order.status || '').toLowerCase()) },
-    { label: 'Out for Delivery', date: order.status === 'delivered' ? 'Completed' : 'Pending', done: order.status === 'delivered' },
-    { label: 'Delivered', date: order.isDelivered ? new Date(order.deliveredAt || Date.now()).toLocaleDateString() : 'Pending', done: !!order.isDelivered }
+    { label: 'Payment Confirmed', date: order.payment?.isPaid || order.isPaid ? new Date(order.payment?.paidAt || order.paidAt || order.createdAt).toLocaleDateString() : 'Pending', done: !!(order.payment?.isPaid || order.isPaid) },
+    { label: isRejected ? 'Rejected' : 'Order Accepted', date: isRejected ? 'Order Cancelled' : ['accepted', 'shipped', 'delivered'].includes(statusLower) ? 'Confirmed' : 'Pending', done: isRejected || ['accepted', 'shipped', 'delivered'].includes(statusLower), isError: isRejected },
+    { label: 'Shipped', date: ['shipped', 'delivered'].includes(statusLower) ? 'Completed' : 'Pending', done: ['shipped', 'delivered'].includes(statusLower) },
+    { label: 'Out for Delivery', date: statusLower === 'delivered' ? 'Completed' : 'Pending', done: statusLower === 'delivered' },
+    { label: 'Delivered', date: statusLower === 'delivered' ? new Date().toLocaleDateString() : 'Pending', done: statusLower === 'delivered' }
   ];
 
   return (
@@ -43,9 +45,9 @@ export function TrackOrder() {
                   initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ delay: i * 0.15 }}
                   style={{
                     width: 40, height: 40, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    background: step.done ? 'rgba(34,197,94,0.2)' : 'rgba(255,255,255,0.05)',
-                    border: `2px solid ${step.done ? '#22c55e' : 'rgba(255,255,255,0.1)'}`,
-                    color: step.done ? '#22c55e' : '#4b5563',
+                    background: step.isError ? 'rgba(239,68,68,0.2)' : step.done ? 'rgba(34,197,94,0.2)' : 'rgba(255,255,255,0.05)',
+                    border: `2px solid ${step.isError ? '#ef4444' : step.done ? '#22c55e' : 'rgba(255,255,255,0.1)'}`,
+                    color: step.isError ? '#ef4444' : step.done ? '#22c55e' : '#4b5563',
                   }}>
                   {STEP_ICONS[i] || <Check size={18} />}
                 </motion.div>

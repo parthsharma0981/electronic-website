@@ -1,0 +1,75 @@
+
+> electronic-store-backend@1.0.0 test
+> node --experimental-vm-modules node_modules/jest/bin/jest.js --coverage
+
+(node:8928) ExperimentalWarning: VM Modules is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+PASS tests/chatController.test.js
+  ● Console
+
+    console.error
+      Gemini AI Error: Error: AI API rate limit
+          at Object.<anonymous> (E:\my projects\react\full-electronic-store\electronic-store-backend\tests\chatController.test.js:90:47)
+          at Promise.finally.completed (E:\my projects\react\full-electronic-store\electronic-store-backend\node_modules\jest-circus\build\jestAdapterInit.js:1557:28)
+          at new Promise (<anonymous>)
+          at callAsyncCircusFn (E:\my projects\react\full-electronic-store\electronic-store-backend\node_modules\jest-circus\build\jestAdapterInit.js:1497:10)
+          at _callCircusTest (E:\my projects\react\full-electronic-store\electronic-store-backend\node_modules\jest-circus\build\jestAdapterInit.js:1007:40)
+          at processTicksAndRejections (node:internal/process/task_queues:105:5)
+          at _runTest (E:\my projects\react\full-electronic-store\electronic-store-backend\node_modules\jest-circus\build\jestAdapterInit.js:947:3)
+          at E:\my projects\react\full-electronic-store\electronic-store-backend\node_modules\jest-circus\build\jestAdapterInit.js:849:7
+          at _runTestsForDescribeBlock (E:\my projects\react\full-electronic-store\electronic-store-backend\node_modules\jest-circus\build\jestAdapterInit.js:862:11)
+          at _runTestsForDescribeBlock (E:\my projects\react\full-electronic-store\electronic-store-backend\node_modules\jest-circus\build\jestAdapterInit.js:857:11)
+          at run (E:\my projects\react\full-electronic-store\electronic-store-backend\node_modules\jest-circus\build\jestAdapterInit.js:761:3)
+          at runAndTransformResultsToJestFormat (E:\my projects\react\full-electronic-store\electronic-store-backend\node_modules\jest-circus\build\jestAdapterInit.js:1918:21)
+          at jestAdapter (E:\my projects\react\full-electronic-store\electronic-store-backend\node_modules\jest-circus\build\runner.js:101:19)
+          at runTestInternal (E:\my projects\react\full-electronic-store\electronic-store-backend\node_modules\jest-runner\build\index.js:275:16)
+          at runTest (E:\my projects\react\full-electronic-store\electronic-store-backend\node_modules\jest-runner\build\index.js:343:7)
+
+    [0m [90m 70 |[39m     })[33m;[39m
+     [90m 71 |[39m   } [36mcatch[39m (error) {
+    [31m[1m>[22m[39m[90m 72 |[39m     console[33m.[39merror([32m'Gemini AI Error:'[39m[33m,[39m error)[33m;[39m
+     [90m    |[39m             [31m[1m^[22m[39m
+     [90m 73 |[39m     res[33m.[39mstatus([35m500[39m)[33m;[39m
+     [90m 74 |[39m     [36mthrow[39m [36mnew[39m [33mError[39m([32m'Our AI agent is currently taking a break. Please try again later.'[39m)[33m;[39m
+     [90m 75 |[39m   }[0m
+
+      at error (controllers/chatController.js:72:13)
+      at Object.<anonymous> (tests/chatController.test.js:92:5)
+
+PASS tests/authMiddleware.test.js
+---------------------------|---------|----------|---------|---------|----------------------------
+File                       | % Stmts | % Branch | % Funcs | % Lines | Uncovered Line #s          
+---------------------------|---------|----------|---------|---------|----------------------------
+All files                  |    7.32 |     4.32 |    6.84 |    7.97 |                            
+ controllers               |    3.84 |      2.5 |    5.08 |    4.09 |                            
+  analyticsController.js   |       0 |        0 |       0 |       0 | 9-72                       
+  authController.js        |       0 |        0 |       0 |       0 | 10-305                     
+  authDirectController.js  |       0 |        0 |       0 |       0 | 6-28                       
+  categoryController.js    |       0 |        0 |       0 |       0 | 13-89                      
+  chatController.js        |     100 |       80 |     100 |     100 | 27-55                      
+  couponController.js      |       0 |        0 |       0 |       0 | 7-85                       
+  csvController.js         |       0 |        0 |       0 |       0 | 10-85                      
+  feedbackController.js    |       0 |        0 |       0 |       0 | 8-58                       
+  orderController.js       |       0 |        0 |       0 |       0 | 15-201                     
+  orderDirectController.js |       0 |        0 |       0 |       0 | 8-35                       
+  productController.js     |       0 |        0 |       0 |       0 | 5-189                      
+  reviewController.js      |       0 |        0 |       0 |       0 | 6-89                       
+ middleware                |   41.46 |     25.8 |   33.33 |    42.5 |                            
+  adminMiddleware.js       |       0 |        0 |       0 |       0 | 1-15                       
+  authMiddleware.js        |     100 |      100 |     100 |     100 |                            
+  errorMiddleware.js       |       0 |        0 |       0 |       0 | 1-24                       
+ models                    |   16.36 |        0 |       0 |   18.36 |                            
+  Category.js              |       0 |      100 |     100 |       0 | 2-16                       
+  Coupon.js                |       0 |        0 |       0 |       0 | 3-38                       
+  Feedback.js              |       0 |      100 |     100 |       0 | 3-15                       
+  Order.js                 |       0 |      100 |     100 |       0 | 3-46                       
+  Product.js               |     100 |      100 |     100 |     100 |                            
+  Review.js                |       0 |      100 |     100 |       0 | 3-18                       
+  User.js                  |   27.27 |        0 |       0 |   28.57 | 16-29,59-62,66,71-74,78-81 
+---------------------------|---------|----------|---------|---------|----------------------------
+
+Test Suites: 2 passed, 2 total
+Tests:       9 passed, 9 total
+Snapshots:   0 total
+Time:        1.953 s
+Ran all test suites.

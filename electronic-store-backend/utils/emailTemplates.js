@@ -102,11 +102,40 @@ export const orderAlertAdminTpl = (order, user) => BASE(`
 `);
 
 export const orderStatusTpl = (name, order, status) => BASE(`
-  <h2>Order ${status} ${status==='Accepted'?'✅':status==='Rejected'?'❌':'📦'}</h2>
+  <h2>Order ${status} ${status==='Accepted'?'✅':status==='Rejected'?'❌':status==='Shipped'?'🚚':status==='Delivered'?'🎁':'📦'}</h2>
   <p>Hi <strong>${name}</strong>,</p>
   <p>Your order <span class="tag">#${order._id.toString().slice(-8).toUpperCase()}</span> has been <strong>${status.toLowerCase()}</strong>.</p>
   ${status==='Rejected' && order.rejectionReason ? `<p><strong>Reason:</strong> ${order.rejectionReason}</p>` : ''}
   ${status==='Rejected' ? `<p>A full refund of <strong>₹${order.totalAmount.toLocaleString('en-IN')}</strong> has been initiated and will reflect in 5–7 business days.</p>` : ''}
   ${status==='Accepted' ? `<p>We're now preparing your order. You'll receive another update once it's shipped. 🚚</p>` : ''}
-  ${status==='Shipped' ? `<p>Your jewellery is on its way! Expect delivery in 3–5 business days. 🎁</p>` : ''}
+  ${status==='Shipped' ? `<p>Your order is on its way! Expect delivery in 3–5 business days. 📦</p>` : ''}
+  ${status==='Delivered' ? `<p>Your order has been delivered! We hope you love it. 🎉</p>` : ''}
+`);
+
+export const welcomeEmailTpl = (name) => BASE(`
+  <h2>Welcome to Electronic Store! 🎉</h2>
+  <p>Hi <strong>${name}</strong>,</p>
+  <p>Your account has been successfully created. Welcome to Electronic Store — your one-stop shop for premium electronics.</p>
+  <div class="line"></div>
+  <p><strong>What you can do now:</strong></p>
+  <table>
+    <tr><td>🛒</td><td>Browse and shop premium electronics</td></tr>
+    <tr><td>❤️</td><td>Save favorites to your wishlist</td></tr>
+    <tr><td>📦</td><td>Track your orders in real-time</td></tr>
+    <tr><td>⭐</td><td>Review products you've purchased</td></tr>
+  </table>
+  <div class="line"></div>
+  <p>Happy shopping! ✦</p>
+`);
+
+export const lowStockAlertTpl = (products) => BASE(`
+  <h2>🚨 Low Stock Alert</h2>
+  <p>The following product(s) are running low on stock and may need restocking:</p>
+  <div class="line"></div>
+  <table>
+    <tr style="background:#f8f5f0;"><td><strong>Product</strong></td><td><strong>Stock</strong></td></tr>
+    ${products.map(p => `<tr><td>${p.name} <span style="color:#a89880;">(${p.category})</span></td><td style="color:${p.stock <= 2 ? '#dc2626' : '#f59e0b'};font-weight:700;">${p.stock} left</td></tr>`).join('')}
+  </table>
+  <div class="line"></div>
+  <p>Please restock these items from the admin dashboard to avoid stockouts.</p>
 `);

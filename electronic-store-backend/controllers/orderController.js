@@ -2,8 +2,9 @@ import asyncHandler from 'express-async-handler';
 import crypto from 'crypto';
 import Order from '../models/Order.js';
 import Product from '../models/Product.js';
-import { razorpayInstance } from '../utils/razorpay.js';
+import { getRazorpay } from '../utils/razorpay.js';
 import { sendEmail } from '../utils/sendEmail.js';
+import { checkLowStock } from '../utils/inventoryService.js';
 import {
   orderConfirmUserTpl,
   orderAlertAdminTpl,
@@ -26,12 +27,17 @@ export const createRazorpayOrder = asyncHandler(async (req, res) => {
   }
 
   try {
+    const razorpay = getRazorpay();
+    if (!razorpay) {
+      res.status(503);
+      throw new Error('Payment gateway not configured. Please contact support.');
+    }
     const options = {
       amount:   Math.round(amount * 100), // paise
       currency: 'INR',
       receipt:  `rcpt_${Date.now()}`,
     };
-    const rzpOrder = await razorpayInstance.orders.create(options);
+    const rzpOrder = await razorpay.orders.create(options);
     res.json(rzpOrder);
   } catch (err) {
     console.error('Razorpay order create error:', err);
@@ -78,6 +84,9 @@ export const placeOrder = asyncHandler(async (req, res) => {
   for (const item of orderItems) {
     await Product.findByIdAndUpdate(item.product, { $inc: { stock: -item.quantity, salesCount: item.quantity } });
   }
+
+  // Check for low stock after order
+  checkLowStock().catch(() => {}); // fire-and-forget
 
   // Email to USER
   try {
@@ -156,7 +165,9 @@ export const updateOrderStatus = asyncHandler(async (req, res) => {
   // Auto-refund on rejection
   if (status === 'Rejected' && order.payment.isPaid && !order.refund?.isRefunded) {
     try {
-      const refund = await razorpayInstance.payments.refund(
+      const razorpay = getRazorpay();
+      if (!razorpay) throw new Error('Payment gateway not available for refund');
+      const refund = await razorpay.payments.refund(
         order.payment.razorpay_payment_id,
         {
           amount: Math.round(order.totalAmount * 100),

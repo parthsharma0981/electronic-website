@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Routes, Route, Link, useNavigate, useLocation } from 'react-router-dom';
 import { IntroSequence } from './components/IntroSequence';
+import { ChatBot } from './components/ChatBot';
 import { Home } from './pages/Home';
 import { Login } from './pages/Login';
 import { Register } from './pages/Register';
@@ -18,16 +19,20 @@ import { SellerDashboard } from './pages/SellerDashboard';
 import { AdminDashboard } from './pages/AdminDashboard';
 import { Support } from './pages/Support';
 import { SearchResults } from './pages/SearchResults';
-import { ShoppingBag, Search, User, Store, Sun, Moon } from 'lucide-react';
+import { Compare } from './pages/Compare';
+import { ShoppingBag, Search, User, Store, Sun, Moon, GitCompareArrows, X, ArrowRight } from 'lucide-react';
+import { useCompare } from './context/CompareContext';
 import { useAuth } from './context/AuthContext';
 import { useCart } from './context/CartContext';
 import { useTheme } from './context/ThemeContext';
+import { useLanguage } from './context/LanguageContext';
 import './index.css';
 
 export function Navbar() {
   const { user, logout, isAdmin } = useAuth();
   const { cart } = useCart();
   const { theme, toggleTheme } = useTheme();
+  const { locale, setLocale, t } = useLanguage();
   const navigate = useNavigate();
   const cartItemsCount = cart?.totalItems || 0;
 
@@ -48,12 +53,12 @@ export function Navbar() {
 
       <div className="nav-links">
         {isAdmin ? (
-          <span className="nav-link" style={{ cursor: 'default', color: '#fff', fontWeight: 700 }}>Admin Panel</span>
+          <span className="nav-link" style={{ cursor: 'default', color: '#fff', fontWeight: 700 }}>{t('nav.admin')} Panel</span>
         ) : (
           <div className="flex gap-10">
-            <Link to="/" className="nav-link">Discover</Link>
-            <Link to="/products" className="nav-link">Products</Link>
-            <Link to="/sell" className="nav-link">Sell</Link>
+            <Link to="/" className="nav-link">{t('nav.discover')}</Link>
+            <Link to="/products" className="nav-link">{t('nav.products')}</Link>
+            <Link to="/sell" className="nav-link">{t('nav.sell')}</Link>
             <Link to="/support" className="nav-link">Support</Link>
           </div>
         )}
@@ -61,8 +66,15 @@ export function Navbar() {
 
       <div className="nav-icons text-white flex items-center gap-6">
         <button 
+          onClick={() => setLocale(locale === 'en' ? 'hi' : 'en')} 
+          className="nav-icon flex items-center justify-center cursor-pointer bg-transparent border-none outline-none text-inherit hover:scale-110 active:scale-95 transition-all text-sm font-black"
+          aria-label="Toggle language"
+        >
+          {locale === 'en' ? 'HI' : 'EN'}
+        </button>
+        <button 
           onClick={toggleTheme} 
-          className="nav-icon flex items-center justify-center pointer cursor-pointer bg-transparent border-none outline-none text-inherit hover:scale-110 active:scale-95 transition-all w-8 h-8 rounded-full"
+          className="nav-icon flex items-center justify-center cursor-pointer bg-transparent border-none outline-none text-inherit hover:scale-110 active:scale-95 transition-all w-8 h-8 rounded-full"
           aria-label="Toggle theme"
         >
           {theme === 'light' ? <Moon size={18} /> : <Sun size={18} />}
@@ -72,8 +84,8 @@ export function Navbar() {
           <div className="flex items-center gap-6">
             {!isAdmin && (
               <>
-                <Link to="/orders" className="nav-link text-xs no-underline">Orders</Link>
-                <Link to="/wishlist" className="nav-link text-xs no-underline">Saved</Link>
+                <Link to="/orders" className="nav-link text-xs no-underline">{t('nav.orders')}</Link>
+                <Link to="/wishlist" className="nav-link text-xs no-underline">{t('nav.saved')}</Link>
                 <Link to="/seller" className="nav-link"><Store size={20} /></Link>
                 <Link to="/cart" className="relative text-inherit">
                   <ShoppingBag size={20} className="nav-icon" />
@@ -91,7 +103,7 @@ export function Navbar() {
         ) : (
           <Link to="/login" className="btn-premium py-2 px-6 flex items-center gap-2 no-underline">
             <User size={16} />
-            <span className="text-xs font-bold">Sign In</span>
+            <span className="text-xs font-bold">{t('nav.signIn')}</span>
           </Link>
         )}
       </div>
@@ -109,6 +121,58 @@ function PageWrapper({ children }: { children: React.ReactNode }) {
       className="w-full flex-1 flex flex-col"
     >
       {children}
+    </motion.div>
+  );
+}
+
+function FloatingCompareBar() {
+  const { compareItems, removeFromCompare, clearCompare } = useCompare();
+  const navigate = useNavigate();
+
+  if (compareItems.length === 0) return null;
+
+  return (
+    <motion.div
+      initial={{ y: 100, opacity: 0 }}
+      animate={{ y: 0, opacity: 1 }}
+      exit={{ y: 100, opacity: 0 }}
+      style={{
+        position: 'fixed', bottom: '1.5rem', left: '50%', transform: 'translateX(-50%)',
+        zIndex: 1000, display: 'flex', alignItems: 'center', gap: '1rem',
+        padding: '0.75rem 1.25rem', borderRadius: '9999px',
+        background: 'rgba(10, 10, 15, 0.85)', backdropFilter: 'blur(20px)',
+        border: '1px solid rgba(var(--primary-rgb), 0.2)',
+        boxShadow: '0 8px 40px rgba(0,0,0,0.5), 0 0 30px rgba(var(--primary-rgb), 0.08)',
+      }}
+    >
+      <GitCompareArrows size={18} style={{ color: 'var(--primary)', flexShrink: 0 }} />
+      <div style={{ display: 'flex', gap: '0.5rem' }}>
+        {compareItems.map(p => (
+          <div key={p._id} style={{ position: 'relative' }}>
+            <img src={p.images?.[0]?.url} alt={p.name}
+              style={{ width: 36, height: 36, borderRadius: '50%', objectFit: 'cover', border: '2px solid rgba(var(--primary-rgb), 0.3)' }} />
+            <button onClick={() => removeFromCompare(p._id)} style={{
+              position: 'absolute', top: -4, right: -4, width: 16, height: 16, borderRadius: '50%',
+              background: 'rgba(239,68,68,0.9)', border: 'none', color: '#fff',
+              cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+              fontSize: '0.5rem', fontWeight: 900, lineHeight: 1,
+            }}>
+              <X size={10} />
+            </button>
+          </div>
+        ))}
+      </div>
+      <span style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-secondary)' }}>
+        {compareItems.length}/3
+      </span>
+      <button onClick={() => navigate('/compare')} className="btn-glow"
+        style={{ padding: '0.5rem 1.25rem', borderRadius: '9999px', fontSize: '0.75rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+        Compare <ArrowRight size={14} />
+      </button>
+      <button onClick={clearCompare}
+        style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: '0.25rem', display: 'flex' }}>
+        <X size={16} />
+      </button>
     </motion.div>
   );
 }
@@ -161,10 +225,14 @@ function App() {
                 <Route path="/admin" element={<PageWrapper><AdminDashboard /></PageWrapper>} />
                 <Route path="/support" element={<PageWrapper><Support /></PageWrapper>} />
                 <Route path="/search" element={<PageWrapper><SearchResults /></PageWrapper>} />
+                <Route path="/compare" element={<PageWrapper><Compare /></PageWrapper>} />
                 <Route path="*" element={<PageWrapper><div className="flex flex-col items-center justify-center min-h-[60vh] text-text-muted uppercase tracking-widest font-black text-xs">Resource Not Found</div></PageWrapper>} />
               </Routes>
             </AnimatePresence>
           </main>
+
+          <FloatingCompareBar />
+          <ChatBot />
 
           <footer style={{ background: 'var(--bg-surface)', borderTop: '1px solid rgba(var(--primary-rgb), 0.06)', padding: '6rem 0' }}>
             <div className="container grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-16 text-left w-full mb-16">

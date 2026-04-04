@@ -1,12 +1,9 @@
 import api from './api.js';
 
 export const orderService = {
-  placeOrderDirect: (data) => api.post('/orders/direct', data),
-  createRazorpayOrder: (amount) => api.post('/orders/create-razorpay-order', { amount }),
-  placeOrder: (data) => api.post('/orders', data),
   getMyOrders: () => api.get('/orders/myorders'),
-  getById: (id) => api.get(`/orders/${id}`),
-  // Admin
-  getAll: (params) => api.get('/orders', { params }),
-  updateStatus: (id, data) => api.put(`/orders/${id}/status`, data),
+  getAll: () => api.get('/orders'),
+  placeOrderDirect: (data) => api.post('/orders', data),
+  updateStatus: (orderId, status) => api.patch(`/orders/${orderId}/status`, { status }),
+  getAllOrders: (params) => api.get('/orders/all', { params }), // keep for backwards compatibility if needed
 };

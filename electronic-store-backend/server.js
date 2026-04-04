@@ -31,7 +31,11 @@ import reviewRoutes   from './routes/reviewRoutes.js';
 
 import categoryRoutes from './routes/categoryRoutes.js';
 
+import couponRoutes   from './routes/couponRoutes.js';
 
+import analyticsRoutes from './routes/analyticsRoutes.js';
+import csvRoutes      from './routes/csvRoutes.js';
+import chatRoutes     from './routes/chatRoutes.js';
 
 dotenv.config();
 
@@ -216,6 +220,12 @@ app.use('/api/feedback', feedbackRoutes);
 
 app.use('/api/reviews',  reviewRoutes);
 
+app.use('/api/coupons', couponRoutes);
+
+app.use('/api/analytics', analyticsRoutes);
+app.use('/api/admin/csv', csvRoutes);
+app.use('/api/chat',     chatRoutes);
+
 
 
 if (isProd) {
@@ -250,26 +260,15 @@ function startServer(retries = 3) {
   });
 
   server.on('error', (err) => {
-    if (err.code === 'EADDRINUSE' && retries > 0) {
-      console.log(`⚠️  Port ${PORT} in use. Killing blocking process...`);
-      try {
-        // Find and kill the process on Windows
-        const result = execSync(`netstat -ano | findstr :${PORT} | findstr LISTENING`, { encoding: 'utf8' });
-        const lines = result.trim().split('\n');
-        const pids = [...new Set(lines.map(l => l.trim().split(/\s+/).pop()))];
-        for (const pid of pids) {
-          if (pid && pid !== '0') {
-            try { execSync(`taskkill /PID ${pid} /F`, { encoding: 'utf8' }); } catch {}
-          }
-        }
-        console.log(`   Killed PID(s): ${pids.join(', ')}. Retrying in 2s...`);
-      } catch {
-        console.log('   Could not auto-kill. Retrying in 2s...');
-      }
-      setTimeout(() => startServer(retries - 1), 2000);
+    if (err.code === 'EADDRINUSE') {
+      console.error(`❌ Port ${PORT} is already in use. Please close the other server or change PORT.`);
+      if (isProd) process.exit(1);
+      // In dev, try to start on a fallback port or just exit cleanly
+      console.error('Shutting down dev server due to port conflict. Please kill the port manually.');
+      process.exit(1);
     } else {
       console.error('❌ Server failed to start:', err.message);
-      process.exit(1);
+      if (isProd) process.exit(1);
     }
   });
 
@@ -286,6 +285,21 @@ function startServer(retries = 3) {
 startServer();
 
 process.on('unhandledRejection', (err) => {
-  console.error('Unhandled Rejection:', err.message);
-  if (isProd) process.exit(1);
+  console.error('⚠️  Unhandled Rejection:', err?.message || err);
+  if (err?.stack) console.error(err.stack);
+  // Don't crash in dev — let the server keep running
+  if (isProd) {
+    console.error('Shutting down due to unhandled rejection in production...');
+    process.exit(1);
+  }
 });
+
+process.on('uncaughtException', (err) => {
+  console.error('💥 Uncaught Exception:', err?.message || err);
+  if (err?.stack) console.error(err.stack);
+  if (isProd) {
+    console.error('Shutting down due to uncaught exception in production...');
+    process.exit(1);
+  }
+});
+
